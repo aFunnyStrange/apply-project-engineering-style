@@ -1,0 +1,204 @@
+# Python Conventions
+
+## Contents
+
+- Compatibility and typing
+- Contracts and dependency injection
+- Pydantic v2
+- Async I/O
+- Structure and entrypoints
+- Documentation and logging
+- Configuration and tests
+
+## Compatibility and typing
+
+- Target the Python version declared by the project. For new compatible code, avoid syntax newer than the
+  supported runtime.
+- Write unions with `Union[A, B]` and nullable values with `Optional[T]`. Do not use PEP 604 `A | B` syntax.
+- Add explicit parameter and return annotations to public functions, methods, protocols, and important internal
+  boundaries.
+- Use precise aliases for JSON objects, task payloads, identifiers, and callback signatures. Keep `Any` at
+  unavoidable framework or third-party boundaries instead of letting it spread through services.
+- Use `TypedDict` for stable mapping shapes, Pydantic models for validated boundaries, and dataclasses or domain
+  classes for behavior-rich internal data where appropriate.
+- Use `TYPE_CHECKING` only for typing imports that would otherwise create a runtime cycle.
+- Prefer explicit `Optional` handling and early returns over unchecked attribute access or broad casts.
+
+Example:
+
+```python
+"""Define the task storage contract used by the scheduler."""
+
+from typing import List, Optional, Protocol
+
+
+class TaskStorageProtocol(Protocol):
+    """Describe durable task operations required by the scheduler."""
+
+    async def claim_tasks(self, stage: str, limit: int) -> List[int]:
+        """Claim eligible task identifiers."""
+        ...
+
+    async def mark_completed(self, task_id: int, artifact_url: Optional[str]) -> None:
+        """Persist a completed task result."""
+        ...
+```
+
+## Contracts and dependency injection
+
+- Use `Protocol` for structural duck typing when callers need a capability without requiring implementations to
+  inherit from a base class. This is the default for repository, storage, transport, capture, and callback seams.
+- Use `ABC` plus `@abstractmethod` when explicit inheritance, shared behavior, or lifecycle enforcement is part
+  of the design. Raise `NotImplementedError` from abstract method bodies when a concrete body is required.
+- Do not create both a Protocol and an ABC for the same boundary without a concrete reason.
+- Inject dependencies through constructors or explicit function parameters. Initialize concrete clients and
+  adapters in a factory or application composition root.
+- Give each crawler/spider a one-way dependency on common downloader and repository contracts. Do not chain
+  platform spiders through each other.
+- Publish stable callable APIs in `export.py` for services, crawlers, and workers. Let handlers, direct tests,
+  and the top-level crawler/worker `manager` use those exports instead of importing internal modules ad hoc.
+- Keep `export.py` free of HTTP framework objects and server startup. Re-export or wrap service operations
+  without duplicating business logic, and accept injectable dependencies where direct unit tests need doubles.
+
+## Pydantic v2
+
+- Use Pydantic v2 APIs and imports. Do not add v1 `validator`, `root_validator`, nested model `class Config`,
+  `parse_obj`, or `.dict()` patterns.
+- Use `ConfigDict`, `field_validator`, `model_validator`, `model_validate`, and `model_dump`.
+- Use `Field` constraints for ports, limits, timeouts, identifiers, and other validated configuration.
+- Use `SecretStr` or an equivalent secret type for credentials. Reveal a secret only at the adapter call that
+  requires it.
+- Put API request/response models near the application boundary and crawler models near the crawler boundary
+  when their contracts differ. Do not reuse one oversized model across unrelated layers.
+- Keep internal domain models independent from FastAPI request objects.
+- Use `pydantic-settings` for new settings systems when it is already available or appropriate. Otherwise load
+  `os.getenv` values explicitly into a Pydantic v2 model. Preserve precedence:
+  process environment, then `.env`, then code defaults.
+
+Example:
+
+```python
+"""Define validated worker settings."""
+
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
+
+
+class WorkerSettings(BaseModel):
+    """Store validated worker runtime settings."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    redis_url: SecretStr
+    task_month: str
+    concurrency: int = Field(default=4, ge=1, le=100)
+    proxy: Optional[SecretStr] = None
+```
+
+## Async I/O
+
+- Use `asyncio` for long-lived, concurrent, request-serving, or streaming runtime entrypoints and their network,
+  database, queue, filesystem, subprocess, and crawler I/O boundaries.
+- Permit a bounded one-shot migration, verifier, converter, or developer tool to remain synchronous when it has
+  no concurrency, cancellation, streaming, shared event-loop, or async-caller requirement. Record the reason
+  when this differs from the surrounding application runtime; do not convert a real application boundary to
+  synchronous code for convenience.
+- Define an async `Protocol` for HTTP/downloader behavior and inject the selected implementation. Do not import a
+  concrete HTTP library into services or bind the Skill to one client.
+- Reuse async HTTP sessions and connection pools. Do not create a new client for each request.
+- Wrap unavoidable synchronous SDK or filesystem work with `asyncio.to_thread`.
+- Keep CPU-only parsing, normalization, validation, and value transformations synchronous when they do not
+  await anything. Do not add meaningless `async def` declarations to pure functions.
+- Do not hold an async lock across unrelated slow work. Scope locks to the resource or platform behavior they
+  protect.
+- Use bounded queues and bounded concurrency. Never create unbounded task lists from a production-sized scan.
+- Handle `asyncio.CancelledError` separately and re-raise it.
+- Close sessions, pools, and clients in an explicit lifecycle method or async context manager.
+- Avoid infinite account or task scans. Complete one bounded traversal and return a clear failure or retry
+  result.
+
+## Structure and entrypoints
+
+Keep the project root limited to configuration/tool metadata, README files, and thin `settings.py`, `export.py`,
+`server.py`, or `manager.py` entrypoints. Put the following implementation layers inside the named package:
+
+```text
+project/
+├── settings.py          thin configuration entry
+├── export.py            stable API and optional direct tests
+├── server.py            optional thin server entry
+├── manager.py           optional thin worker entry
+└── package_name/
+    ├── platforms/ or platform/
+    ├── infra/
+    ├── repo/
+    ├── service/
+    ├── workflow/ or graph/
+    ├── app/models/
+    ├── app/handlers/
+    ├── app/routers/
+    ├── crawler/models/
+    ├── crawler/spiders/
+    └── tests/
+```
+
+- Read [project-layout.md](project-layout.md) for the complete root allowlist.
+- Require root `export.py` for Python services, crawlers, workers, LangGraph, agent, RAG, and other AI
+  applications.
+- Keep service entrypoints such as `server.py` thin.
+- Make service handlers call the stable `export.py` API. Keep that API directly testable with injected
+  repositories or fakes so unit functionality does not require starting FastAPI or another server.
+- Make a pure crawler/worker `manager.py` the top-level scheduling and concurrency entry. Let it call
+  `export.py`; do not add a separate concurrency-executor layer and do not design another caller above manager.
+- Expose importable `main()` or application factory functions that can be called directly from an IDE debugger.
+- Use `async def main()` plus `asyncio.run(main())` for directly executed Python runtimes.
+- Allow every project's `export.py` to provide command-line tests or guarded
+  `if __name__ == "__main__":` tests because it may expose many package functions.
+- Do not add command-line interfaces elsewhere unless the user explicitly asks. Run other tools and entrypoints
+  as `python xx.py`; adjust a settings file or deliberately editable Python parameters for Console Debugger
+  workflows.
+- Treat framework development commands such as test runners, graph development servers, migration tools, and
+  debuggers as toolchain commands rather than custom application CLIs. They do not replace the importable
+  `export.py` surface or its direct-debug path.
+- Keep temporary debugging entrypoints separate from reusable core logic.
+
+## Documentation and logging
+
+- Add a triple-double-quoted docstring to every module, class, function, and method.
+- Describe purpose, inputs, outputs, and raised errors for nontrivial public interfaces. Keep obvious private
+  helpers concise rather than filling them with generic boilerplate.
+- Replace `print` with the project logger in maintained runtime code.
+- Configure each standalone server or worker to log to the terminal and its expected file when the project
+  requires persistent local logs.
+- Attach stable context such as task ID, query ID, platform, stage, and environment once through logger context.
+  Do not repeat the same identifiers in every message.
+- Log database/object-store state changes and identifiers, request failures, abnormal parse results, account
+  failures, and returned error branches.
+- Avoid logging routine successful responses, full large payloads, credentials, cookies, proxy passwords, or
+  tokens. Truncate bounded failure samples.
+- Preserve meaningful traceback and original source location. Avoid wrappers that make every log appear to come
+  from the logging helper.
+
+## Configuration and tests
+
+- Centralize settings behind the root `settings.py` entry and package-owned validated settings implementation.
+  Do not scatter environment reads through services, graphs, nodes, or spiders.
+- Keep local `.env` at the project root, ignore it from version control, and commit a redacted `.env.example`.
+- Validate configuration before starting long-lived processes.
+- Preserve Docker paths, working directories, log locations, and launch behavior during refactors.
+- Add unit tests that call `export.py` or a directly imported internal unit with protocol-compatible fakes.
+  Make each test prove that one isolated flow can run through without starting the service.
+- Add integration tests for one narrow business scenario at a time. Exercise the relevant collaborating
+  services, repositories, adapters, and test infrastructure without expanding the case into the full product
+  lifecycle.
+- Add a total/system test that runs the complete business flow from its real entry through the final durable
+  result. Keep it distinct from narrow integration tests.
+- Cover task transitions, retry priority, partition filtering, restart recovery, bounded scheduling, parser
+  edge cases, and cancellation at the appropriate test level.
+- Run the repository's formatter, linter, type checker, and focused tests. Use the bundled checker for the
+  personal rules not normally covered by standard tools:
+
+```bash
+python3 scripts/check_python_conventions.py path/to/changed_package
+```

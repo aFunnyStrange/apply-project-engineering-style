@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Engineering Style"
+  short_description: "Apply layered, testable project conventions"
+  default_prompt: "Use $apply-project-engineering-style to implement this requirement with the project's existing contracts and the user's engineering conventions."
