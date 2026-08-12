@@ -1,7 +1,6 @@
 # Project Engineering Style
 
 > Status: **active**. Approved on 2026-07-30; continue improving it from verified real-project evidence.
-> Do not apply it to normal project development until it is explicitly activated.
 
 `apply-project-engineering-style` packages recurring architecture, code organization, runtime boundaries, and
 testing conventions into a Codex Skill so they do not need to be repeated in every development prompt.
@@ -13,6 +12,7 @@ Use this Skill when:
 - creating or refactoring backend services, crawlers, workers, and asynchronous task pipelines;
 - developing LangGraph, agent, multi-agent, RAG, LLM orchestration, or other AI workflows;
 - maintaining Python, Rust, JavaScript/TypeScript, Java, Go, or mixed-language projects;
+- evolving reusable frameworks/libraries across interpreter and vendor dependency versions;
 - designing boundaries among databases, Redis, message queues, object storage, and task state;
 - requiring layered, testable, IDE-friendly, replayable, and diagnosable code;
 - creating or maintaining Codex Skills that should follow the same engineering conventions.
@@ -29,16 +29,19 @@ Skill is enabled.
 
 ## Core conventions
 
-- Keep the project root limited to configuration/tool metadata, README files, and thin entrypoints. Put all
-  implementation, tests, migrations, prompts, graph nodes, and maintained scripts inside the language's normal
-  package/source tree.
+- Keep the project root limited to configuration/tool metadata, README files, thin entrypoints, and
+  ecosystem-standard source/test/documentation directories. Put implementation and maintained files in their
+  owned package, source, or conventional test tree instead of leaving loose root files.
 - Treat the clean-root rule as cross-language, but use native layouts rather than copying Python filenames.
+- Use root `export.py`/`manager.py` for concrete Python application runtimes; reusable frameworks and libraries
+  expose their stable API from the named package instead.
 - For Python applications, keep root `settings.py` and `export.py`; add `server.py` only for a server runtime
   and `manager.py` only for a crawler/worker runtime.
 - Keep `.env` local and ignored, and commit a redacted `.env.example`.
 - Keep `export.py` for LangGraph and other Python AI applications; framework manifests do not replace it.
 - Layer services as `platform/infra -> repo -> service -> export.py -> handlers -> routers`.
-- Expose directly testable Python service, crawler, and worker functionality through `export.py`.
+- Expose directly testable Python application service, crawler, and worker functionality through `export.py`;
+  expose reusable framework/library functionality through its named package API.
 - Let the top-level worker or crawler `manager` own scheduling and concurrency directly.
 - In AI projects, let the graph orchestrate one task internally; let the worker `manager` claim work and run
   multiple graphs concurrently without reimplementing node scheduling.
@@ -53,6 +56,8 @@ Skill is enabled.
 - Put large responses, images, and capture artifacts in object storage rather than Redis.
 - Use asynchronous I/O for long-lived or concurrent runtimes while keeping transports replaceable; allow a
   bounded one-shot tool to stay synchronous when an event loop adds no lifecycle or concurrency value.
+- Isolate vendor-version changes, optional dependencies, native acceleration, fallback parity, background-task
+  ownership, streaming closure, and scheduler acknowledgement behind tested framework-owned contracts.
 - For Python, use Pydantic v2, `Union`/`Optional`, `Protocol`-based duck typing, and `asyncio`.
 - Preserve unit, narrow business integration, and complete business/system test levels.
 
@@ -93,6 +98,8 @@ target agents, and sync. Review agent-specific tools and permissions after impor
 - `SKILL.md`: core instructions used by Codex.
 - `references/project-layout.md`: cross-language clean-root rule and Python service, worker, and AI layouts.
 - `references/architecture.md`: layering, task state, server/worker, and storage boundaries.
+- `references/framework-library-contracts.md`: public package APIs, adapters, optional/native backends,
+  scheduler lifecycle, persistence, compatibility matrices, and generated-project verification.
 - `references/account-management.md`: optional account repositories, Redis TTL coordination, and account-manager
   conventions.
 - `references/ai-workflows.md`: layering, state, async, export, and testing conventions for LangGraph and similar

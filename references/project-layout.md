@@ -5,6 +5,7 @@
 - Root-directory rule
 - Cross-language rule
 - Python root files
+- Python library and framework roots
 - Package ownership
 - Python service layout
 - Python worker layout
@@ -17,11 +18,13 @@ Keep the project root as a small allowlist containing only:
 
 1. project configuration and tool metadata;
 2. user-facing README files;
-3. thin executable, configuration, and export entrypoints.
+3. thin executable, configuration, and export entrypoints;
+4. ecosystem-standard source, package, test, documentation, example, and migration directories.
 
 Put all implementation details inside the language's normal named package, source tree, crate, module, or
-workspace location. Do not leave business modules, clients, repositories, services, handlers, routers, graph
-nodes, prompts, utility modules, test logic, migrations, or ad hoc debug programs loose in the root.
+workspace location. Put tests and other project resources in the ecosystem's conventional owned directories.
+Do not leave business modules, clients, repositories, services, handlers, routers, graph nodes, prompts,
+utility modules, test logic, migrations, or ad hoc debug programs as arbitrary loose files in the root.
 
 ## Cross-language rule
 
@@ -85,6 +88,30 @@ Interpret the entries as follows:
 Do not create empty placeholder entrypoints. Omit `server.py`, `manager.py`, `langgraph.json`, container files,
 or other optional entries when that runtime does not exist.
 
+## Python library and framework roots
+
+A reusable Python library or framework is not automatically an application project. Its root normally contains
+packaging/tool metadata, documentation, CI configuration, and its named package:
+
+```text
+project/
+├── README.md
+├── pyproject.toml
+├── lockfile
+├── .gitignore
+├── package_name/
+└── tests/
+```
+
+Expose the supported API through `package_name/__init__.py`, `package_name/api.py`, or deliberate typed public
+modules. Keep optional command entrypoints under the package and declare them in `pyproject.toml`. Do not create
+root `settings.py`, `export.py`, `server.py`, or `manager.py` merely to imitate an application built on the
+framework. Generated application projects may use those files when their concrete runtimes require them.
+
+Treat package generators and templates as maintained source under the package or an ecosystem-standard asset
+location. Tests should generate into temporary directories; generated demos, logs, build output, and editable
+install metadata do not belong in the repository root.
+
 ## Python package ownership
 
 Move Python implementation into the named package:
@@ -112,8 +139,8 @@ Create only the directories the project needs. The rule is about ownership, not 
 project or language.
 
 - Put reusable and business implementation in the package.
-- Put unit, integration, and total/system tests under the package's `tests/` unless an existing tool or
-  repository contract requires another location.
+- Put unit, integration, and total/system tests under the package's `tests/` or the ecosystem-standard root
+  `tests/` tree. Follow the existing tool and repository contract; do not scatter test modules across the root.
 - Put migration code and revisions under the package; keep only a required root tool configuration such as
   `alembic.ini`.
 - Put maintained operational scripts under the package. Temporary one-off debugging files must not accumulate

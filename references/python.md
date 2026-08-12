@@ -55,8 +55,12 @@ class TaskStorageProtocol(Protocol):
   adapters in a factory or application composition root.
 - Give each crawler/spider a one-way dependency on common downloader and repository contracts. Do not chain
   platform spiders through each other.
-- Publish stable callable APIs in `export.py` for services, crawlers, and workers. Let handlers, direct tests,
-  and the top-level crawler/worker `manager` use those exports instead of importing internal modules ad hoc.
+- Publish stable callable APIs in root `export.py` for concrete service, crawler, and worker applications. Let
+  handlers, direct tests, and the top-level crawler/worker `manager` use those exports instead of importing
+  internal modules ad hoc.
+- For a reusable Python framework or library, publish the stable surface through the named package's
+  `__init__.py`, a deliberate `api.py`, or typed public modules. Do not add a root `export.py` or `manager.py`
+  unless the repository also contains that concrete application runtime.
 - Keep `export.py` free of HTTP framework objects and server startup. Re-export or wrap service operations
   without duplicating business logic, and accept injectable dependencies where direct unit tests need doubles.
 
@@ -120,8 +124,9 @@ class WorkerSettings(BaseModel):
 
 ## Structure and entrypoints
 
-Keep the project root limited to configuration/tool metadata, README files, and thin `settings.py`, `export.py`,
-`server.py`, or `manager.py` entrypoints. Put the following implementation layers inside the named package:
+Keep the project root limited to configuration/tool metadata, README files, and the thin application
+entrypoints that actually exist. Put implementation layers inside the named package. A Python application may
+use this layout:
 
 ```text
 project/
@@ -144,8 +149,8 @@ project/
 ```
 
 - Read [project-layout.md](project-layout.md) for the complete root allowlist.
-- Require root `export.py` for Python services, crawlers, workers, LangGraph, agent, RAG, and other AI
-  applications.
+- Require root `export.py` for concrete Python service, crawler, worker, LangGraph, agent, RAG, and other AI
+  applications. Exempt reusable libraries/frameworks that expose their stable API from the named package.
 - Keep service entrypoints such as `server.py` thin.
 - Make service handlers call the stable `export.py` API. Keep that API directly testable with injected
   repositories or fakes so unit functionality does not require starting FastAPI or another server.
@@ -159,8 +164,8 @@ project/
   as `python xx.py`; adjust a settings file or deliberately editable Python parameters for Console Debugger
   workflows.
 - Treat framework development commands such as test runners, graph development servers, migration tools, and
-  debuggers as toolchain commands rather than custom application CLIs. They do not replace the importable
-  `export.py` surface or its direct-debug path.
+  debuggers as toolchain commands rather than custom application CLIs. For an application they do not replace
+  `export.py`; for a reusable library they do not replace its importable package API.
 - Keep temporary debugging entrypoints separate from reusable core logic.
 
 ## Documentation and logging

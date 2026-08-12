@@ -4,6 +4,7 @@
 
 - Scope
 - Architecture
+- Frameworks and libraries
 - AI workflows
 - State and recovery
 - Test levels
@@ -50,6 +51,31 @@
 - Confirm that clients, pools, and sessions are reused and that unavoidable synchronous I/O is isolated from
   the async runtime.
 - Remove speculative abstractions that have no current consumer, alternate implementation, or testing value.
+
+## Frameworks and libraries
+
+When the changed project is a reusable framework or library:
+
+- Confirm the package-level public API imports without creating application runtime state.
+- Confirm vendor-specific types, flags, exceptions, and version branches remain inside adapters.
+- Confirm optional extras are not imported by the core package and missing features fail with actionable
+  installation guidance only when selected.
+- Confirm runtime lazy exports, typed exports/stubs, `__all__`, documentation, and generated imports agree.
+- Run shared contract vectors against native/accelerated and fallback backends; reject backends whose hashes,
+  bytes, framing, persistent state, or exceptions differ without an explicit versioned protocol.
+- Run scheduler and background-task lifecycle tests on every declared interpreter/runtime version. Cover normal
+  completion, cancellation, interrupt-driven shutdown, restart, and a producer that can enqueue after a queue
+  becomes temporarily empty.
+- Confirm stream ownership closes resources on success, callback failure, interceptor replacement,
+  cancellation, and shutdown, with bounded concurrency and buffering.
+- Confirm acknowledgement occurs only after the represented downstream handoff succeeds and partitioned-log
+  commits do not pass unfinished earlier offsets.
+- Generate every supported project/demo mode into a temporary directory, import its public entrypoints, and run
+  at least one representative flow through the same API path users call.
+- Test the declared compatibility matrix: interpreter versions, supported vendor versions, core-only install,
+  important extras, claimed runtime topologies, and clean wheel/source-distribution installs.
+
+Read [framework-library-contracts.md](framework-library-contracts.md) for the full contract.
 
 ## AI workflows
 

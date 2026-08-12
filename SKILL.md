@@ -1,6 +1,6 @@
 ---
 name: apply-project-engineering-style
-description: Apply the user's cross-language engineering conventions to backend services, crawlers, workers, AI or LangGraph workflows, APIs, libraries, frontend support code, and Codex Skills. Use when creating, implementing, refactoring, or reviewing a software project that should follow layered architecture, appropriate asynchronous I/O, replaceable transports, server/worker separation, durable state ownership, Redis or MQ boundaries, IDE-friendly contracts, observability, direct-debug workflows, three-level testing, and the user's Python-specific Pydantic v2, asyncio, Protocol, docstring, and typing rules.
+description: Apply the user's cross-language engineering conventions to backend services, crawlers, workers, AI or LangGraph workflows, APIs, reusable frameworks and libraries, frontend support code, and Codex Skills. Use when creating, implementing, refactoring, or reviewing a software project that should follow layered architecture, appropriate asynchronous I/O, replaceable transports, compatibility and optional-dependency contracts, server/worker separation, durable state ownership, Redis or MQ boundaries, IDE-friendly APIs, observability, direct-debug workflows, three-level testing, and the user's Python-specific Pydantic v2, asyncio, Protocol, docstring, and typing rules.
 ---
 
 # Apply Project Engineering Style
@@ -37,19 +37,27 @@ refactor merely because this Skill describes a preferred architecture.
 5. Define contracts at the consuming boundary and inject implementations at a composition root.
 6. Implement the smallest coherent change; preserve deployment paths, public APIs, data, and operational
    behavior unless the request explicitly changes them.
-7. Validate syntax, formatting, types, focused behavior, failure paths, and the final diff.
+7. For a reusable framework or library, identify its declared interpreter, dependency-version, optional-extra,
+   generated-project, and runtime-mode compatibility matrix before changing a public contract.
+8. Validate syntax, formatting, types, focused behavior, failure paths, built/installed artifacts when relevant,
+   and the final diff.
 
 ## Keep the project root clean
 
-Treat the project root as an allowlist for configuration/tool metadata, `README.md`/`readme-chinese.md`, and
-thin entrypoints. Put all business and framework implementation, graph nodes, prompts, tests, migrations, and
-maintained scripts inside the language's normal named package, source tree, crate, module, or workspace
-location.
+Treat the project root as an allowlist for configuration/tool metadata, `README.md`/`readme-chinese.md`, thin
+entrypoints, and ecosystem-standard source/test/documentation directories. Put business and framework
+implementation, graph nodes, prompts, migrations, maintained scripts, and tests inside the language's normal
+named package, source tree, conventional test tree, crate, module, or workspace location; do not leave them as
+arbitrary loose root files.
 
 For Python application projects, keep a root `settings.py` configuration entry and a root `export.py` stable
 callable/debug surface. Add `server.py` only for a server runtime and `manager.py` only for a crawler or worker
 runtime. Keep `.env` local and ignored; commit a redacted `.env.example`. LangGraph and other Python AI projects
 still require `export.py`; a framework manifest does not replace the stable export surface.
+
+For a reusable Python library or framework, use its package-level public surface, such as `package/__init__.py`
+or a deliberate `api.py`. Do not add application-only root `settings.py`, `export.py`, `server.py`, or
+`manager.py` files unless the repository also ships that concrete runtime.
 
 Do not copy the Python filenames into Rust, JavaScript/TypeScript, Java, Go, or another language. Use each
 ecosystem's native build metadata, public-library surface, source tree, binary/application entrypoint, and test
@@ -74,6 +82,13 @@ root.
 - Keep `domain` or model types stable and framework-light. Do not let lower layers import routes, handlers,
   application startup code, or concrete UI concerns.
 - Put dependency construction in one composition root. Avoid hidden client construction inside business logic.
+- Keep changing vendor clients behind framework-owned platform contracts. Normalize version differences and
+  transport exceptions in the adapter, preserve original causes, and do not retry programming errors.
+- Keep optional drivers and native extensions out of default import paths. Preserve IDE completion with checked
+  typed lazy exports or stubs, and test that runtime and typed public surfaces stay synchronized.
+- Keep concrete infra clients one-shot. Put bounded retry, cancellation policy, and replaceable resource
+  generations above infra; collapse concurrent replacement of the same failed generation and never replay an
+  arbitrary non-idempotent transaction automatically.
 - Use an interface, trait, or protocol when multiple implementations, testing seams, or circular-import
   avoidance justify it. Do not create abstraction layers with only speculative value.
 - Keep server/API responsibilities separate from crawler or background execution. Let the server validate and
@@ -98,6 +113,8 @@ root.
   client in configuration or the composition root so it can be replaced without rewriting business logic.
 - Reuse clients, pools, and sessions. Offload unavoidable synchronous I/O using the language's supported
   blocking adapter instead of blocking the async runtime.
+- Give every background task a retained owner and shutdown path. Do not treat an empty queue as quiescence while
+  callbacks, listeners, streams, or other active producers can still enqueue work.
 - Centralize typed configuration and load secrets from the environment. Never log credentials, cookies, tokens,
   or full sensitive payloads.
 - Log failures, abnormal parsing, external I/O, and state transitions with stable context. Avoid noisy success
@@ -117,6 +134,10 @@ root.
 
 Read [architecture.md](references/architecture.md) for any backend, crawler, API, worker, queue, database, or
 multi-process design.
+
+Read [framework-library-contracts.md](references/framework-library-contracts.md) when developing or reviewing a
+reusable framework/library, public extension surface, generated project template, vendor-version adapter,
+optional/native backend, scheduler lifecycle, streaming API, or compatibility matrix.
 
 Read [account-management.md](references/account-management.md) only when the project uses accounts and the user
 requests account locking, leasing, cooldown, risk state, or rate limiting.
