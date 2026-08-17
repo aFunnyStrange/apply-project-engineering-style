@@ -1,6 +1,6 @@
 ---
 name: apply-project-engineering-style
-description: Apply the user's cross-language engineering conventions to backend services, crawlers, workers, AI or LangGraph workflows, APIs, reusable frameworks and libraries, frontend support code, and Codex Skills. Use when creating, implementing, refactoring, or reviewing a software project that should follow layered architecture, appropriate asynchronous I/O, replaceable transports, compatibility and optional-dependency contracts, server/worker separation, durable state ownership, Redis or MQ boundaries, IDE-friendly APIs, observability, direct-debug workflows, three-level testing, and the user's Python-specific Pydantic v2, asyncio, Protocol, docstring, and typing rules.
+description: Apply the user's cross-language engineering conventions to backend services, crawlers, workers, AI or LangGraph workflows, APIs, reusable frameworks and libraries, frontend support code, and Codex Skills. Use when creating, implementing, refactoring, or reviewing a software project that should follow intentional application/import/distribution boundaries, layered architecture, real configuration ownership, appropriate asynchronous I/O, replaceable transports, compatibility and optional-dependency contracts, server/worker separation, durable state ownership, Redis or MQ boundaries, IDE-friendly APIs, observability, direct-debug workflows, three-level testing, and the user's Python-specific Pydantic v2, asyncio, Protocol, docstring, and typing rules.
 ---
 
 # Apply Project Engineering Style
@@ -32,7 +32,9 @@ refactor merely because this Skill describes a preferred architecture.
 1. Inspect the target tree, entrypoints, configuration, tests, and adjacent modules before editing.
 2. Identify the existing business facts, state owner, external systems, process boundaries, and dependency
    direction.
-3. For a new subsystem or structural refactor, sketch the intended layers and data flow before writing code.
+3. For a new subsystem or structural refactor, establish a baseline of current behavior, entrypoints,
+   configuration ownership, state, outputs, import paths, and deployment paths. Then sketch the intended
+   layers, data flow, filesystem layout, import model, and distribution boundary before writing code.
 4. Keep transport, orchestration, persistence, and platform-specific behavior in separate boundaries.
 5. Define contracts at the consuming boundary and inject implementations at a composition root.
 6. Implement the smallest coherent change; preserve deployment paths, public APIs, data, and operational
@@ -40,20 +42,27 @@ refactor merely because this Skill describes a preferred architecture.
 7. For a reusable framework or library, identify its declared interpreter, dependency-version, optional-extra,
    generated-project, and runtime-mode compatibility matrix before changing a public contract.
 8. Validate syntax, formatting, types, focused behavior, failure paths, built/installed artifacts when relevant,
-   and the final diff.
+   the requested structural outcome, and the final diff. Passing tests does not prove that a reorganization met
+   its maintainability or layout goal.
 
 ## Keep the project root clean
 
 Treat the project root as an allowlist for configuration/tool metadata, `README.md`/`readme-chinese.md`, thin
 entrypoints, and ecosystem-standard source/test/documentation directories. Put business and framework
-implementation, graph nodes, prompts, migrations, maintained scripts, and tests inside the language's normal
-named package, source tree, conventional test tree, crate, module, or workspace location; do not leave them as
-arbitrary loose root files.
+implementation, graph nodes, prompts, migrations, maintained scripts, and tests inside deliberately selected
+owned packages, source trees, conventional test trees, crates, modules, or workspace locations; do not leave
+them as arbitrary loose root files.
 
 For Python application projects, keep a root `settings.py` configuration entry and a root `export.py` stable
 callable/debug surface. Add `server.py` only for a server runtime and `manager.py` only for a crawler or worker
 runtime. Keep `.env` local and ignored; commit a redacted `.env.example`. LangGraph and other Python AI projects
 still require `export.py`; a framework manifest does not replace the stable export surface.
+
+Treat the named implementation package as a default, not a mandatory wrapper. First distinguish the application
+directory, Python import namespaces, and built distribution. When the user or repository defines the application
+directory itself as the deployment unit, explicitly owned layer packages may live directly beneath it. Do not
+add an otherwise redundant wrapper package for visual conformity. Conversely, `pyproject.toml` alone does not
+make a project distributable: configure discovery, build from a clean copy, inspect the artifact, and import it.
 
 For a reusable Python library or framework, use its package-level public surface, such as `package/__init__.py`
 or a deliberate `api.py`. Do not add application-only root `settings.py`, `export.py`, `server.py`, or
@@ -81,6 +90,10 @@ root.
   root `export.py`.
 - Keep `domain` or model types stable and framework-light. Do not let lower layers import routes, handlers,
   application startup code, or concrete UI concerns.
+- Give `platform` or `platforms` one precise role: convert unstable third-party APIs, versions, exceptions,
+  wire formats, and operating-system behavior into stable project-owned semantics. Do not use it as a synonym
+  for infrastructure or as a miscellaneous directory. In a flat Python layout, avoid a root package name that
+  shadows the standard library.
 - Put dependency construction in one composition root. Avoid hidden client construction inside business logic.
 - Keep changing vendor clients behind framework-owned platform contracts. Normalize version differences and
   transport exceptions in the adapter, preserve original causes, and do not retry programming errors.
@@ -91,6 +104,10 @@ root.
   arbitrary non-idempotent transaction automatically.
 - Use an interface, trait, or protocol when multiple implementations, testing seams, or circular-import
   avoidance justify it. Do not create abstraction layers with only speculative value.
+- For bounded discovery-and-collection flows, process every discovered item unless the contract explicitly
+  defines sampling. Fan out independent I/O behind a limit scoped to the constrained resource, isolate ordinary
+  item failures, propagate cancellation, and deduplicate final records across the complete run while retaining
+  source observations needed for diagnosis.
 - Keep server/API responsibilities separate from crawler or background execution. Let the server validate and
   persist tasks; let schedulers and workers execute them asynchronously.
 - Treat a relational database or another durable store as the source of truth for task and business state.
@@ -115,8 +132,11 @@ root.
   blocking adapter instead of blocking the async runtime.
 - Give every background task a retained owner and shutdown path. Do not treat an empty queue as quiescence while
   callbacks, listeners, streams, or other active producers can still enqueue work.
-- Centralize typed configuration and load secrets from the environment. Never log credentials, cookies, tokens,
-  or full sensitive payloads.
+- Make root `settings.py` the actual editable configuration surface for a Python application, not a
+  forwarding-only shim. Reusable validation may live in an owned module, while concrete application defaults
+  and profiles remain discoverable at the root. Keep machine-local values and secrets in ignored root `.env`,
+  preserve process-environment precedence, and never log credentials, cookies, tokens, or full sensitive
+  payloads.
 - Log failures, abnormal parsing, external I/O, and state transitions with stable context. Avoid noisy success
   logs and duplicate context already attached by the logger.
 - Prefer directly debuggable Python file entrypoints over CLI-only designs. Allow command-line or `__main__`
@@ -127,6 +147,10 @@ root.
 - Maintain three test levels: unit tests for one isolated executable flow, integration tests for one narrow
   business scenario across its collaborating components, and a total/system test for the complete business
   flow. Do not mislabel the total test as an integration test.
+- Do not invent persistence or local artifacts merely because a workflow produced data. Distinguish discovery
+  metadata, normalized observations, deduplicated results, and durable artifacts. Add storage only when the
+  business, replay, audit, or diagnostic contract requires it, and verify generated output is excluded from
+  distributions when it is not part of the product.
 - When developing a Skill, add an English root `README.md` and a Chinese `readme-chinese.md` for users. Keep the
   two versions semantically aligned and summarize purpose, applicable tasks, quick invocation, major
   capabilities, and resource layout. Keep Agent-only procedures and detailed execution rules in `SKILL.md`;
@@ -134,6 +158,10 @@ root.
 
 Read [architecture.md](references/architecture.md) for any backend, crawler, API, worker, queue, database, or
 multi-process design.
+
+Read [collection-workflows.md](references/collection-workflows.md) when a workflow discovers multiple items,
+fans out external I/O, aggregates overlapping results, rotates constrained resources, or needs an explicit
+decision about persistence.
 
 Read [framework-library-contracts.md](references/framework-library-contracts.md) when developing or reviewing a
 reusable framework/library, public extension surface, generated project template, vendor-version adapter,

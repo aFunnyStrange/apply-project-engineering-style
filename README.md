@@ -32,14 +32,21 @@ Skill is enabled.
 - Keep the project root limited to configuration/tool metadata, README files, thin entrypoints, and
   ecosystem-standard source/test/documentation directories. Put implementation and maintained files in their
   owned package, source, or conventional test tree instead of leaving loose root files.
+- Distinguish the application directory, import namespaces, and built distribution before reorganizing Python.
+  Use a named package by default, but allow explicitly owned flat layer packages when a wrapper adds no value.
+- Treat `pyproject.toml` as build configuration, not proof of packaging; build from a clean copy, inspect the
+  artifact, and import its public surface.
 - Treat the clean-root rule as cross-language, but use native layouts rather than copying Python filenames.
 - Use root `export.py`/`manager.py` for concrete Python application runtimes; reusable frameworks and libraries
   expose their stable API from the named package instead.
 - For Python applications, keep root `settings.py` and `export.py`; add `server.py` only for a server runtime
   and `manager.py` only for a crawler/worker runtime.
 - Keep `.env` local and ignored, and commit a redacted `.env.example`.
+- Keep root `settings.py` as the real editable application configuration surface rather than a forwarding shim.
 - Keep `export.py` for LangGraph and other Python AI applications; framework manifests do not replace it.
 - Layer services as `platform/infra -> repo -> service -> export.py -> handlers -> routers`.
+- Use `platform`/`platforms` specifically to stabilize third-party APIs, versions, exceptions, and wire
+  semantics; keep resource construction and lifecycle in infrastructure.
 - Expose directly testable Python application service, crawler, and worker functionality through `export.py`;
   expose reusable framework/library functionality through its named package API.
 - Let the top-level worker or crawler `manager` own scheduling and concurrency directly.
@@ -60,6 +67,8 @@ Skill is enabled.
   ownership, streaming closure, and scheduler acknowledgement behind tested framework-owned contracts.
 - For Python, use Pydantic v2, `Union`/`Optional`, `Protocol`-based duck typing, and `asyncio`.
 - Preserve unit, narrow business integration, and complete business/system test levels.
+- For discovery-and-collection flows, cover every discovered item with resource-scoped bounded concurrency,
+  retain source observations, deduplicate final records across the run, and add persistence only when required.
 
 ## Install for Codex
 
@@ -98,6 +107,8 @@ target agents, and sync. Review agent-specific tools and permissions after impor
 - `SKILL.md`: core instructions used by Codex.
 - `references/project-layout.md`: cross-language clean-root rule and Python service, worker, and AI layouts.
 - `references/architecture.md`: layering, task state, server/worker, and storage boundaries.
+- `references/collection-workflows.md`: complete discovery, bounded fan-out, resource pools, run-level
+  deduplication, and explicit persistence decisions.
 - `references/framework-library-contracts.md`: public package APIs, adapters, optional/native backends,
   scheduler lifecycle, persistence, compatibility matrices, and generated-project verification.
 - `references/account-management.md`: optional account repositories, Redis TTL coordination, and account-manager

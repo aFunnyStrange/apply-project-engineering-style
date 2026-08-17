@@ -33,14 +33,21 @@ Skill 会先遵循当前需求和项目本身的约定，再在项目没有明�
 - 项目根目录只保留配置/工具元数据、README、极薄入口和生态标准的源码/测试/文档目录；实现代码、
   测试、迁移、Prompt、Graph 节点和维护脚本进入有明确归属的包、源码或标准测试目录，不散落为
   根级文件。
+- 重组 Python 项目前先区分应用目录、导入命名空间和构建发行物。默认使用命名包；当包装命名空间
+  没有实际价值时，也允许职责明确的根级分层包。
+- `pyproject.toml` 只是构建配置，不等于打包已经成功；必须从干净副本构建、检查产物成员并从
+  构建产物导入公开接口。
 - 干净根目录是跨语言原则，但具体文件名遵循各语言生态，不能把 Python 入口机械复制到其他语言。
 - Python 应用在根目录保留 `settings.py` 和 `export.py`；只有服务进程才添加 `server.py`，只有
   爬虫/Worker 进程才添加 `manager.py`。
 - 可复用 Python 框架/库通过命名包的 `__init__.py`、`api.py` 或明确的公开模块提供稳定 API，
   不为模仿应用结构而添加根级 `export.py`/`manager.py`。
 - `.env` 只在本地根目录使用并加入忽略，仓库提交脱敏的 `.env.example`。
+- 根级 `settings.py` 必须是真实可编辑的应用配置面，不能只是转发文件。
 - LangGraph 和其他 Python AI 项目同样保留根级 `export.py`，框架清单不能替代稳定导出入口。
 - 服务按 `platform/infra -> repo -> service -> export.py -> handlers -> routers` 分层。
+- `platform`/`platforms` 专门把第三方 API、版本差异、异常和线协议转换为项目稳定语义；
+  资源构造和生命周期归 infrastructure。
 - 具体 Python 应用中的服务、爬虫和 Worker 通过 `export.py` 暴露可直接测试的功能；可复用框架/库
   则通过命名包的公开 API 暴露。
 - 纯爬虫或 Worker 由最高层 `manager` 直接负责调度和并发。
@@ -59,6 +66,8 @@ Skill 会先遵循当前需求和项目本身的约定，再在项目没有明�
   ACK 语义隔离在框架自有契约中，并用兼容矩阵验证。
 - Python 使用 Pydantic v2、`Union`/`Optional`、Protocol 鸭子类型和 asyncio。
 - 每个项目保留单元测试、细业务集成测试和完整业务总测试三个层次。
+- 发现—采集型流程默认覆盖全部发现项，以资源为粒度限制并发，保留来源观察、在整轮范围统一
+  去重，并且只在明确需要时增加持久化。
 
 ## 安装到 Codex
 
@@ -97,6 +106,7 @@ Codex 通常会自动识别 Skill 变化；没有显示时重启 Codex。使用
 - `SKILL.md`：Codex 使用的核心执行规则。
 - `references/project-layout.md`：跨语言干净根目录原则，以及 Python 服务、Worker 和 AI 项目布局。
 - `references/architecture.md`：分层、任务状态、Server/Worker 和存储边界。
+- `references/collection-workflows.md`：完整发现、有界并发、资源池、整轮去重和显式持久化决策。
 - `references/framework-library-contracts.md`：包级公开 API、第三方适配器、可选/native 后端、调度器
   生命周期、持久化、兼容矩阵和生成项目验证。
 - `references/account-management.md`：按需启用的账号仓库、Redis TTL 协调和账号 Manager 规范。

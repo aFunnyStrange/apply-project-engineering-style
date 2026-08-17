@@ -124,9 +124,10 @@ class WorkerSettings(BaseModel):
 
 ## Structure and entrypoints
 
-Keep the project root limited to configuration/tool metadata, README files, and the thin application
-entrypoints that actually exist. Put implementation layers inside the named package. A Python application may
-use this layout:
+Keep the project root limited to configuration/tool metadata, README files, thin application entrypoints, and
+the deliberately selected owned source directories. A named implementation package is the default, but flat
+layer packages are valid when the project directory itself is the explicit application and deployment unit.
+Read [project-layout.md](project-layout.md) before choosing either model. A named-package application may use:
 
 ```text
 project/
@@ -149,6 +150,8 @@ project/
 ```
 
 - Read [project-layout.md](project-layout.md) for the complete root allowlist.
+- Do not create a redundant wrapper namespace merely to imitate the named-package diagram. In a flat layout,
+  keep every layer explicitly owned and avoid top-level package names that shadow the standard library.
 - Require root `export.py` for concrete Python service, crawler, worker, LangGraph, agent, RAG, and other AI
   applications. Exempt reusable libraries/frameworks that expose their stable API from the named package.
 - Keep service entrypoints such as `server.py` thin.
@@ -158,6 +161,8 @@ project/
   `export.py`; do not add a separate concurrency-executor layer and do not design another caller above manager.
 - Expose importable `main()` or application factory functions that can be called directly from an IDE debugger.
 - Use `async def main()` plus `asyncio.run(main())` for directly executed Python runtimes.
+- Make the documented runtime file the real entrypoint from the project root. Do not require callers to change
+  directories, mutate `sys.path`, or invoke a CLI wrapper before normal execution.
 - Allow every project's `export.py` to provide command-line tests or guarded
   `if __name__ == "__main__":` tests because it may expose many package functions.
 - Do not add command-line interfaces elsewhere unless the user explicitly asks. Run other tools and entrypoints
@@ -187,9 +192,13 @@ project/
 
 ## Configuration and tests
 
-- Centralize settings behind the root `settings.py` entry and package-owned validated settings implementation.
+- Make root `settings.py` the actual editable configuration surface for a concrete application. Reusable
+  validation and parsing may live in owned modules, but the root file must not be a forwarding-only shim.
   Do not scatter environment reads through services, graphs, nodes, or spiders.
 - Keep local `.env` at the project root, ignore it from version control, and commit a redacted `.env.example`.
+- Keep machine-local endpoints and secrets in `.env`; preserve process environment, then `.env`, then code
+  default precedence. Preserve operator-required connection fields as separately validated values instead of
+  collapsing them into a more opaque representation for implementation convenience.
 - Validate configuration before starting long-lived processes.
 - Preserve Docker paths, working directories, log locations, and launch behavior during refactors.
 - Add unit tests that call `export.py` or a directly imported internal unit with protocol-compatible fakes.
@@ -207,3 +216,7 @@ project/
 ```bash
 python3 scripts/check_python_conventions.py path/to/changed_package
 ```
+
+- For distributable applications, build from a clean temporary copy without local secrets or runtime outputs,
+  inspect wheel/source-distribution members, and import the public configuration, export, and runtime surfaces
+  from the built artifact. Source-tree imports do not prove package discovery is correct.

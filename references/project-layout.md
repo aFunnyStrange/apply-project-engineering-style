@@ -5,6 +5,7 @@
 - Root-directory rule
 - Cross-language rule
 - Python root files
+- Python application layout decision
 - Python library and framework roots
 - Package ownership
 - Python service layout
@@ -21,8 +22,9 @@ Keep the project root as a small allowlist containing only:
 3. thin executable, configuration, and export entrypoints;
 4. ecosystem-standard source, package, test, documentation, example, and migration directories.
 
-Put all implementation details inside the language's normal named package, source tree, crate, module, or
-workspace location. Put tests and other project resources in the ecosystem's conventional owned directories.
+Put all implementation details inside the deliberately selected owned package, source tree, layer directory,
+crate, module, or workspace location. Put tests and other project resources in the ecosystem's conventional
+owned directories.
 Do not leave business modules, clients, repositories, services, handlers, routers, graph nodes, prompts,
 utility modules, test logic, migrations, or ad hoc debug programs as arbitrary loose files in the root.
 
@@ -74,8 +76,8 @@ Interpret the entries as follows:
   and framework manifests are project/tool configuration.
 - `.env` is a local runtime file. Keep it ignored and never commit secrets.
 - `.env.example` is the committed, redacted variable contract.
-- `settings.py` is the thin root configuration entry. Keep validated settings models and parsing details inside
-  the package; re-export or construct them here.
+- `settings.py` is the authoritative editable application configuration surface. Keep reusable validation
+  models and parsing helpers in an owned module, but do not reduce the root file to a forwarding-only shim.
 - `export.py` is required for Python application projects, including services, crawlers, workers, LangGraph,
   agent, RAG, and other AI workflows. It exposes a stable directly testable API and may provide the permitted
   `__main__` or CLI debug surface.
@@ -87,6 +89,45 @@ Interpret the entries as follows:
 
 Do not create empty placeholder entrypoints. Omit `server.py`, `manager.py`, `langgraph.json`, container files,
 or other optional entries when that runtime does not exist.
+
+## Python application layout decision
+
+Distinguish three boundaries before moving files:
+
+1. the application directory used as the working and deployment root;
+2. the Python import namespaces used by source code;
+3. the built distribution installed or published for execution.
+
+Use a named implementation package when the code is intended to be imported as one namespace, coexist with
+other packages, or behave like a reusable library. Use explicit layer packages directly under the application
+directory when the user or repository defines that directory as the deployment unit and a wrapper namespace
+would add no ownership or compatibility value.
+
+A flat application can use:
+
+```text
+project/
+├── .env
+├── .env.example
+├── pyproject.toml
+├── settings.py
+├── export.py
+├── manager.py
+├── config/
+├── domain/
+├── platforms/
+├── infrastructure/
+├── repositories/
+├── services/
+├── runtime/
+└── tests/
+```
+
+Do not mix both layouts accidentally or leave an empty wrapper containing only imports and caches. In a flat
+Python layout, avoid a root import package whose name shadows the standard library. A dependency list in
+`pyproject.toml` does not prove packaging: declare a build backend, configure module/package discovery and
+exclusions, build from a clean temporary copy, inspect artifact members, and import the public surface from the
+built artifact.
 
 ## Python library and framework roots
 
@@ -114,7 +155,7 @@ install metadata do not belong in the repository root.
 
 ## Python package ownership
 
-Move Python implementation into the named package:
+For the named-package model, move Python implementation into the named package:
 
 ```text
 package_name/
@@ -135,8 +176,8 @@ package_name/
 └── scripts/
 ```
 
-Create only the directories the project needs. The rule is about ownership, not forcing every layer into every
-project or language.
+Create only the directories the project needs. The rule is about explicit ownership, not forcing every layer
+or a wrapper namespace into every project or language. Apply the same dependency rules to flat layer packages.
 
 - Put reusable and business implementation in the package.
 - Put unit, integration, and total/system tests under the package's `tests/` or the ecosystem-standard root

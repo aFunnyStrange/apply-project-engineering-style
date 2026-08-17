@@ -34,6 +34,8 @@
 - Confirm business modules, graph nodes, prompts, tests, migrations, and maintained scripts live inside the
   language's normal owned source/package structure unless an explicit repository/tool contract requires
   otherwise.
+- Confirm the selected Python application layout is intentional: either one named implementation namespace or
+  flat owned layer packages under the application directory. Reject accidental mixtures and empty wrappers.
 - Confirm `.env` is ignored, `.env.example` is redacted and committed, and environment reads are centralized
   behind `settings.py`.
 - Check imports and calls, not only folder names.
@@ -42,10 +44,14 @@
   public surface.
 - Confirm that `export.py` can be imported and exercised without starting the server or importing HTTP runtime
   state.
+- Run or import the documented root entrypoint from the documented working directory and confirm it does not
+  mutate `sys.path` or depend on an undocumented CLI bootstrap.
 - Confirm that services do not construct concrete clients or read environment variables.
 - Confirm that repositories do not return HTTP/framework response objects.
 - Confirm that lower layers do not import upper layers.
 - Confirm that concrete dependencies are assembled in one discoverable composition root.
+- Confirm `platform` or `platforms` translates unstable third-party APIs and wire semantics into stable
+  project-owned contracts rather than serving as a generic miscellaneous or resource-ownership directory.
 - Confirm that every external I/O boundary is asynchronous and that concrete transport clients can be replaced
   without changing business logic.
 - Confirm that clients, pools, and sessions are reused and that unavoidable synchronous I/O is isolated from
@@ -139,6 +145,10 @@ Do not use "integration test" as a catch-all name for a complete end-to-end syst
 configuration, expected state, and cleanup independent for each level. For a code change, add or update the
 lowest level that proves the behavior, then run the affected higher levels.
 
+For discovery-and-collection workflows, also apply
+[collection-workflows.md](collection-workflows.md): verify complete discovery coverage, resource-scoped bounded
+fan-out, per-item failure isolation, observation-versus-unique counts, and the explicit persistence decision.
+
 ## Python
 
 - Run the bundled convention checker on changed paths.
@@ -150,9 +160,15 @@ lowest level that proves the behavior, then run the affected higher levels.
 - Confirm async code does not call blocking I/O directly.
 - Confirm pure computation was not made async without an awaited dependency.
 - Confirm client lifecycle, cancellation, and bounded concurrency.
+- Confirm root `settings.py` owns concrete editable application configuration, root `.env` is excluded from
+  distribution, and secrets are revealed only at the concrete adapter boundary.
 - Confirm unit tests can reach Python functionality through `export.py` or a direct unit import without starting
   the server.
 - Run the affected unit, narrow integration, and total/system tests.
+- When `pyproject.toml` declares a distributable application, build wheel/source artifacts from a clean
+  temporary copy, inspect member lists for accidental secrets, caches, logs, runtime outputs, and tests when
+  excluded, then import the public entrypoints from the built artifact. Do not treat `.gitignore` as package
+  configuration.
 
 ## Other languages
 
@@ -179,5 +195,7 @@ lowest level that proves the behavior, then run the affected higher levels.
 
 - Run `git diff --check` when inside a Git worktree.
 - Inspect the complete diff for accidental edits, dead code, temporary debug output, and inconsistent names.
+- Compare the final tree and entrypoints with the user's stated structural goal; do not report a refactor as
+  successful solely because tests passed.
 - Report exactly which checks ran and which could not run.
 - Describe any intentional exception to the conventions and the project evidence that required it.

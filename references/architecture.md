@@ -12,17 +12,17 @@
 
 ## Layer model
 
-Keep the root limited to configuration/tool metadata, README files, and thin entrypoints. Put implementation
-inside the named package. Read [project-layout.md](project-layout.md) for the root allowlist and concrete
-service, worker, and AI layouts.
+Keep the root limited to configuration/tool metadata, README files, thin entrypoints, and the deliberately
+selected owned source or layer directories. Read [project-layout.md](project-layout.md) before choosing a named
+implementation package or a flat application layout.
 
 Use the following roles as a default vocabulary. Combine adjacent layers only when the project is genuinely
 small and the boundary would add no testing or maintenance value.
 
 | Layer | Owns | Must not own |
 | --- | --- | --- |
-| `platform` | Reusable capabilities such as HTTP transport, crypto, codecs, clocks, IDs, object-store SDK wrappers | Business workflows or route semantics |
-| `infra` / `infrastructure` | Database pools, Redis/MQ clients, filesystem and vendor adapters, logging setup | Business decisions |
+| `platform` / `platforms` | Stable project-owned semantics over unstable third-party APIs, versions, exceptions, wire formats, crypto/codecs, and OS capabilities | Business workflows, persistence policy, or leaking vendor types upward |
+| `infra` / `infrastructure` | Resource construction and lifecycle such as database pools, cache/MQ clients, filesystem access, and process logging | Business decisions or presenting raw client methods as domain semantics |
 | `repo` / `repositories` | Persistence semantics, queries, durable state transitions, mapping storage data to domain data | HTTP responses or crawler orchestration |
 | `service` / `services` | Use cases, business validation, domain orchestration, transaction boundaries | Route registration, graph-framework state, or direct environment parsing |
 | `workflow` / `graph` | One AI or durable workflow run's steps, branches, interrupts, and resumable control flow | Durable business truth, global task polling, or direct transport handling |
@@ -83,7 +83,9 @@ application results from services and exports rather than HTTP responses.
   runtimes, and expose replaceable capabilities through contracts. A bounded one-shot tool may remain
   synchronous when an event loop provides no lifecycle or concurrency value. Select concrete HTTP, database,
   queue, and object-storage clients only in the composition root.
-- Keep platform wrappers reusable and business-neutral.
+- Keep platform wrappers reusable and business-neutral. Normalize vendor request/response types, version
+  differences, flags, error categories, and wire details at this boundary. Do not use `platform` as a generic
+  home for unrelated helpers or concrete resource ownership.
 - Break circular imports with a small protocol/interface or by moving stable types into `domain`; do not solve
   them with runtime imports unless a framework forces that boundary.
 - Keep exports explicit when a package is intended as a stable extension surface. Put service, crawler, and
@@ -144,6 +146,10 @@ Use each store for the job it can recover:
 
 Do not use Redis as the only record that a business stage completed. Do not push large response bodies or images
 through Redis merely to connect two stages. Persist the artifact first, then pass a stable identifier or URL.
+
+Do not infer that every produced value requires persistence. A returned normalized result may be the complete
+business boundary. Adding a file, database write, or object-store artifact is new behavior that needs an
+explicit business, replay, audit, or diagnostic purpose.
 
 If a domain legitimately uses Redis as an authoritative short-lived store, document the TTL and loss semantics
 and keep that decision separate from durable task facts.
