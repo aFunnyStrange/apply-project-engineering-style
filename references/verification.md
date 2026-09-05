@@ -52,8 +52,8 @@
 - Confirm that concrete dependencies are assembled in one discoverable composition root.
 - Confirm `platform` or `platforms` translates unstable third-party APIs and wire semantics into stable
   project-owned contracts rather than serving as a generic miscellaneous or resource-ownership directory.
-- Confirm that every external I/O boundary is asynchronous and that concrete transport clients can be replaced
-  without changing business logic.
+- Confirm long-lived concurrent runtimes use appropriate asynchronous I/O or bounded blocking adapters, and
+  concrete transports are replaceable. A bounded one-shot smoke tool may remain synchronous.
 - Confirm that clients, pools, and sessions are reused and that unavoidable synchronous I/O is isolated from
   the async runtime.
 - Remove speculative abstractions that have no current consumer, alternate implementation, or testing value.
@@ -199,3 +199,11 @@ fan-out, per-item failure isolation, observation-versus-unique counts, and the e
   successful solely because tests passed.
 - Report exactly which checks ran and which could not run.
 - Describe any intentional exception to the conventions and the project evidence that required it.
+
+## Capability and standalone-delivery changes
+
+For optional capability changes, apply [capability-evolution.md](capability-evolution.md), including zero calls
+when disabled, old-input compatibility, documented fallback, business denial and circuit scope/recovery.
+For independent services, apply [service-delivery.md](service-delivery.md), including cached startup, ownership,
+clean/rebuild, preserved assets and a smoke request beyond health. Treat documented root operational scripts
+and a thin smoke client as valid entrypoints in the architecture checks above.

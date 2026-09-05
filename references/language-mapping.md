@@ -125,3 +125,10 @@ work.
 - Normalize features and task payloads before crossing process boundaries; retain raw artifacts for audit and
   replay, but do not make downstream logic depend on unstable raw layouts.
 - Document ownership of each schema, queue, state transition, and artifact.
+
+## Small-service operational entrypoints
+
+For independently deployed services, root start/stop/clean scripts and a thin request smoke or demo client
+are intentional entrypoints. Keep them with their service; substantial implementation and test suites still
+belong in owned directories. See [service-delivery.md](service-delivery.md). A Python smoke client does not
+turn a non-Python service into a Python application requiring settings/export files.

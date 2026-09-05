@@ -115,3 +115,11 @@ Codex 通常会自动识别 Skill 变化；没有显示时重启 Codex。使用
 - `references/language-mapping.md`：Rust 等其他语言的通用映射。
 - `references/verification.md`：实施完成后的验证清单。
 - `scripts/check_python_conventions.py`：Python docstring、类型注解和 Pydantic v2 规则检查。
+
+## 能力演进与服务交付
+
+工作流覆盖可选能力兼容、前置功能开关、限定范围的降级与熔断、统一请求上下文、重试尝试归属，
+以及流结束与业务完成的区别。明确支持独立服务根目录的 start/stop/clean 脚本与薄冒烟客户端。
+这些规则用于保留基础行为和小服务部署的便利性，不扩大无关任务范围。
+
+按需参阅 `references/capability-evolution.md` 与 `references/service-delivery.md`，了解执行细节。原有 Python 约定和检查器继续保留。

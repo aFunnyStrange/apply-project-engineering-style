@@ -301,3 +301,10 @@ the ecosystem or tool cannot use its normal source/package location.
 For an existing project, do not move files solely for appearance during an unrelated narrow fix. Apply the
 clean-root migration when the user requests it or when the current task already owns the relevant structure,
 then preserve import paths, launch commands, packaging, deployment, and data compatibility.
+
+## Small-service operational entrypoints
+
+For independently deployed services, root start/stop/clean scripts and a thin request smoke or demo client
+are intentional entrypoints. Keep them with their service; substantial implementation and test suites still
+belong in owned directories. See [service-delivery.md](service-delivery.md). A Python smoke client does not
+turn a non-Python service into a Python application requiring settings/export files.

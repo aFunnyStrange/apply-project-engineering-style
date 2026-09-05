@@ -1,6 +1,6 @@
 ---
 name: apply-project-engineering-style
-description: Apply the user's cross-language engineering conventions to backend services, crawlers, workers, AI or LangGraph workflows, APIs, reusable frameworks and libraries, frontend support code, and Codex Skills. Use when creating, implementing, refactoring, or reviewing a software project that should follow intentional application/import/distribution boundaries, layered architecture, real configuration ownership, appropriate asynchronous I/O, replaceable transports, compatibility and optional-dependency contracts, server/worker separation, durable state ownership, Redis or MQ boundaries, IDE-friendly APIs, observability, direct-debug workflows, three-level testing, and the user's Python-specific Pydantic v2, asyncio, Protocol, docstring, and typing rules.
+description: Apply the user's engineering conventions when implementing, refactoring, or reviewing applications, services, crawlers, workers, AI workflows, reusable libraries, and Skills. Covers project boundaries, direct debugging, configuration ownership, async runtime and state ownership, optional capability compatibility, and verifiable delivery across languages.
 ---
 
 # Apply Project Engineering Style
@@ -44,6 +44,23 @@ refactor merely because this Skill describes a preferred architecture.
 8. Validate syntax, formatting, types, focused behavior, failure paths, built/installed artifacts when relevant,
    the requested structural outcome, and the final diff. Passing tests does not prove that a reorganization met
    its maintainability or layout goal.
+
+## Preserve baseline workflows and lightweight delivery
+
+Keep the existing baseline usable when adding a capability explicitly designated optional. Check enablement
+before validating enhancement-only fields or doing external I/O; model unavailable, skipped, business-denied,
+and incompatible outcomes separately. Use a known supported fallback only within that capability's contract.
+Keep version/request differences in platform adapters and business paths in cohesive workflows; do not grow
+one workflow per flag combination or turn a working small service into a framework.
+
+Read [capability-evolution.md](references/capability-evolution.md) when adding optional remote services,
+feature flags, versioned request profiles, account rotation, streaming completion, or retry/settlement behavior.
+
+For independently deployed small services, preserve root `start.sh`, `stop.sh`, `clean.sh`, an optional foreground
+run script, and a thin `test.py`/`demo.py` when they are the intended operational surface. Scripts belong to the
+service they manage, not an unrelated parent. Keep reusable implementation and substantial test suites in owned
+source/test directories. A Python smoke client for a Java service does not require Python application scaffolding.
+Read [service-delivery.md](references/service-delivery.md) for this delivery shape.
 
 ## Keep the project root clean
 

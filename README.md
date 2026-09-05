@@ -119,3 +119,12 @@ target agents, and sync. Review agent-specific tools and permissions after impor
 - `references/language-mapping.md`: mapping the conventions to Rust and other languages.
 - `references/verification.md`: post-implementation verification checklist.
 - `scripts/check_python_conventions.py`: checks Python docstrings, annotations, and Pydantic v2 conventions.
+
+## Capability evolution and service delivery
+
+The workflow covers optional-capability compatibility, early feature gates, scoped fallback/circuit
+behavior, coherent request profiles, retry attempt ownership and stream-versus-business completion rules.
+It explicitly supports independently deployed services with root start/stop/clean scripts and a thin smoke client.
+These rules preserve baseline behavior and keep small deployments convenient without expanding unrelated work.
+
+See `references/capability-evolution.md` and `references/service-delivery.md` for conditional guidance. The existing Python conventions and checker remain available.
