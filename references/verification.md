@@ -122,7 +122,8 @@ When the project uses LangGraph or another AI workflow runtime:
 
 When account locking is requested:
 
-- Confirm that MySQL/Postgres, not Redis, owns real account and session facts.
+- Confirm that the documented authoritative store owns account/session facts; do not assume a relational
+  migration was required. Verify its retention, backup and loss semantics.
 - Confirm that workers only request and use accounts through the account manager contract.
 - Confirm that lock acquisition, token-safe release, expiry, optional renewal, cooldown, and risk state remain
   inside the account coordination layer.
@@ -161,7 +162,7 @@ fan-out, per-item failure isolation, observation-versus-unique counts, and the e
 - Confirm pure computation was not made async without an awaited dependency.
 - Confirm client lifecycle, cancellation, and bounded concurrency.
 - Confirm root `settings.py` owns concrete editable application configuration, root `.env` is excluded from
-  distribution, and secrets are revealed only at the concrete adapter boundary.
+  distribution when used, and secrets are revealed only at the concrete adapter boundary.
 - Confirm unit tests can reach Python functionality through `export.py` or a direct unit import without starting
   the server.
 - Run the affected unit, narrow integration, and total/system tests.
@@ -207,3 +208,7 @@ when disabled, old-input compatibility, documented fallback, business denial and
 For independent services, apply [service-delivery.md](service-delivery.md), including cached startup, ownership,
 clean/rebuild, preserved assets and a smoke request beyond health. Treat documented root operational scripts
 and a thin smoke client as valid entrypoints in the architecture checks above.
+
+For embedded package migrations, also apply [embedded-workflows.md](embedded-workflows.md): verify disabled
+routing has no new I/O, durable identifiers survive renames, failed final storage does not regenerate work,
+pending capacity prevents duplicate replenishment, and debug defaults cannot alter production policy.

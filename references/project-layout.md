@@ -74,8 +74,8 @@ Interpret the entries as follows:
 - `README.md` and `readme-chinese.md` are user documentation.
 - `pyproject.toml`, lockfiles, formatter/linter/type-checker configuration, container definitions, CI metadata,
   and framework manifests are project/tool configuration.
-- `.env` is a local runtime file. Keep it ignored and never commit secrets.
-- `.env.example` is the committed, redacted variable contract.
+- `.env` is optional: when used, keep it ignored and never commit secrets.
+- `.env.example` documents the redacted variable contract when environment configuration is used.
 - `settings.py` is the authoritative editable application configuration surface. Keep reusable validation
   models and parsing helpers in an owned module, but do not reduce the root file to a forwarding-only shim.
 - `export.py` is required for Python application projects, including services, crawlers, workers, LangGraph,
@@ -308,3 +308,8 @@ For independently deployed services, root start/stop/clean scripts and a thin re
 are intentional entrypoints. Keep them with their service; substantial implementation and test suites still
 belong in owned directories. See [service-delivery.md](service-delivery.md). A Python smoke client does not
 turn a non-Python service into a Python application requiring settings/export files.
+
+For a source-imported package, an explicit public API and encapsulated implementation do not require a new
+`pyproject.toml`. Distribution build checks apply when distribution is part of the delivery contract.
+Document meaningful nested packages as subsystems, including their own state and resource ownership; see
+[embedded-workflows.md](embedded-workflows.md).

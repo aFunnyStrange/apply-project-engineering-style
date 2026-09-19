@@ -75,7 +75,8 @@ class TaskStorageProtocol(Protocol):
 - Put API request/response models near the application boundary and crawler models near the crawler boundary
   when their contracts differ. Do not reuse one oversized model across unrelated layers.
 - Keep internal domain models independent from FastAPI request objects.
-- Use `pydantic-settings` for new settings systems when it is already available or appropriate. Otherwise load
+- Keep an explicitly code-configured package independent of environment loading; inject external connections
+  and callbacks instead. For environment-based applications, use `pydantic-settings` when appropriate or load
   `os.getenv` values explicitly into a Pydantic v2 model. Preserve precedence:
   process environment, then `.env`, then code defaults.
 
@@ -111,7 +112,9 @@ class WorkerSettings(BaseModel):
 - Define an async `Protocol` for HTTP/downloader behavior and inject the selected implementation. Do not import a
   concrete HTTP library into services or bind the Skill to one client.
 - Reuse async HTTP sessions and connection pools. Do not create a new client for each request.
-- Wrap unavoidable synchronous SDK or filesystem work with `asyncio.to_thread`.
+- Offload unavoidable synchronous SDK or filesystem work with an adapter supported by the declared runtime.
+  `asyncio.to_thread` requires Python 3.9+ unless the project explicitly supplies or accepts an exception.
+  Syntax checks alone do not validate standard-library availability or dependency interpreter requirements.
 - Keep CPU-only parsing, normalization, validation, and value transformations synchronous when they do not
   await anything. Do not add meaningless `async def` declarations to pure functions.
 - Do not hold an async lock across unrelated slow work. Scope locks to the resource or platform behavior they
@@ -195,8 +198,10 @@ project/
 - Make root `settings.py` the actual editable configuration surface for a concrete application. Reusable
   validation and parsing may live in owned modules, but the root file must not be a forwarding-only shim.
   Do not scatter environment reads through services, graphs, nodes, or spiders.
-- Keep local `.env` at the project root, ignore it from version control, and commit a redacted `.env.example`.
-- Keep machine-local endpoints and secrets in `.env`; preserve process environment, then `.env`, then code
+- If the application uses environment configuration, keep local `.env` ignored and commit a redacted
+  `.env.example`. Code-configured embedded packages need neither file.
+- For that environment-based contract, keep machine-local endpoints and secrets in `.env`; preserve process
+  environment, then `.env`, then code
   default precedence. Preserve operator-required connection fields as separately validated values instead of
   collapsing them into a more opaque representation for implementation convenience.
 - Validate configuration before starting long-lived processes.

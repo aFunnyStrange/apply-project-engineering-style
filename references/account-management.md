@@ -20,13 +20,20 @@ Add this subsystem only when both conditions hold:
 Do not introduce Redis account coordination for a single-account script or merely because another project has
 it.
 
+## Existing storage contracts
+
+The relational-storage layout below is a default for new designs, not a migration mandate. If the current
+project explicitly stores authoritative sessions elsewhere, preserve that contract and document durability,
+retention, backup and loss semantics. A Redis-authoritative pool needs these decisions just as a SQL pool does.
+Do not move existing session facts or introduce a second source of truth merely to follow this reference.
+
 ## Responsibility boundaries
 
 Use three independent roles:
 
 | Role | Responsibility |
 | --- | --- |
-| Account repository | Read and update real account/session facts in MySQL or Postgres |
+| Account repository | Read and update account/session facts in the established authoritative store |
 | Redis account coordinator | Own TTL locks, lease tokens, cooldown, risk markers, and rate state |
 | Account manager/service | Select accounts, coordinate leases, expose a worker-facing account API, and hide storage details |
 
@@ -45,7 +52,7 @@ account manager.
 
 ## Durable and ephemeral data
 
-Store real facts in MySQL/Postgres:
+For a new relational-storage design, store real facts in MySQL/Postgres:
 
 - account identity and pool membership
 - enabled/disabled state
@@ -54,9 +61,9 @@ Store real facts in MySQL/Postgres:
 - durable invalidation or manual disable reasons
 
 Protect sensitive session fields using the project's secret-management and encryption requirements. Never put
-credentials or full session payloads in Redis merely to simplify Worker access.
+credentials or full session payloads in Redis merely to simplify Worker access when another store owns them.
 
-Store only ephemeral coordination state in Redis:
+In that design, store only ephemeral coordination state in Redis:
 
 - ownership lock with TTL
 - cooldown marker with TTL
@@ -64,8 +71,9 @@ Store only ephemeral coordination state in Redis:
 - request counters or rate-window state with expiry
 - optional lease heartbeat/renewal state
 
-Redis loss may temporarily reduce coordination quality, but it must not destroy the real account pool or its
-session facts. A durable account disable or session replacement must be written to the relational database.
+Under this default, Redis loss affects coordination rather than destroying session facts. Write durable
+disable/session replacement to the selected authoritative store. For an existing Redis-authoritative design,
+state explicitly that Redis loss also loses those facts; do not promise relational durability.
 
 ## Lease lifecycle
 
@@ -136,9 +144,12 @@ Add tests at all three levels:
 
 1. Unit: use a fake repository and fake coordinator to verify selection, bounded waiting, cleanup, and outcome
    policy for one account flow.
-2. Integration: use test MySQL/Postgres and Redis to verify TTL acquisition, contention, atomic token-safe
+2. Integration: use isolated versions of the chosen store and coordinator to verify TTL acquisition, contention, atomic token-safe
    release, expiry recovery, renewal, and configured rate/cooldown behavior.
 3. Total/system: run at least two concurrent Workers against the full account flow and verify that only one owns
    an account at a time, real session data remains durable, and execution recovers after failure.
 
 Include a test proving that changing user-supplied rate configuration changes behavior without code changes.
+
+For eligibility versus archival reads, operation-specific leasing, replenishment and continuation workers,
+read [embedded-workflows.md](embedded-workflows.md).

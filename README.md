@@ -34,14 +34,15 @@ Skill is enabled.
   owned package, source, or conventional test tree instead of leaving loose root files.
 - Distinguish the application directory, import namespaces, and built distribution before reorganizing Python.
   Use a named package by default, but allow explicitly owned flat layer packages when a wrapper adds no value.
-- Treat `pyproject.toml` as build configuration, not proof of packaging; build from a clean copy, inspect the
+- When distribution is required, treat `pyproject.toml` as build configuration, not proof of packaging; build from a clean copy, inspect the
   artifact, and import its public surface.
 - Treat the clean-root rule as cross-language, but use native layouts rather than copying Python filenames.
 - Use root `export.py`/`manager.py` for concrete Python application runtimes; reusable frameworks and libraries
   expose their stable API from the named package instead.
 - For Python applications, keep root `settings.py` and `export.py`; add `server.py` only for a server runtime
   and `manager.py` only for a crawler/worker runtime.
-- Keep `.env` local and ignored, and commit a redacted `.env.example`.
+- Use `.env` and a redacted `.env.example` when environment configuration is part of the application contract;
+  do not add them to explicitly code-configured packages.
 - Keep root `settings.py` as the real editable application configuration surface rather than a forwarding shim.
 - Keep `export.py` for LangGraph and other Python AI applications; framework manifests do not replace it.
 - Layer services as `platform/infra -> repo -> service -> export.py -> handlers -> routers`.
@@ -58,8 +59,8 @@ Skill is enabled.
   relational database.
 - Store business truth in a relational database. Use Redis/MQ primarily for transient coordination and small
   task references.
-- When account locking is required, keep real accounts and sessions in MySQL/PostgreSQL and use Redis only for
-  TTL locks, cooldowns, risk state, and rate limits. Workers request accounts from an account manager.
+- When account locking is required, separate authoritative facts from TTL coordination, preserve the chosen
+  store, and document durability and retention. Workers request accounts from an account manager.
 - Put large responses, images, and capture artifacts in object storage rather than Redis.
 - Use asynchronous I/O for long-lived or concurrent runtimes while keeping transports replaceable; allow a
   bounded one-shot tool to stay synchronous when an event loop adds no lifecycle or concurrency value.
@@ -128,3 +129,11 @@ It explicitly supports independently deployed services with root start/stop/clea
 These rules preserve baseline behavior and keep small deployments convenient without expanding unrelated work.
 
 See `references/capability-evolution.md` and `references/service-delivery.md` for conditional guidance. The existing Python conventions and checker remain available.
+
+## Embedded workflow integration
+
+The [embedded workflow reference](references/embedded-workflows.md) covers source packages without unnecessary
+build scaffolding, injected connections and refresh callbacks, stable persisted identifiers during renames,
+stage-specific retry and asynchronous continuation, atomic capacity replenishment, separate production/debug
+policy, and architecture documentation for nested packages. It introduces no platform-specific thresholds,
+provider configuration, storage migration or rollout authorization.

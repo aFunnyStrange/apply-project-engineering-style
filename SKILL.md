@@ -72,14 +72,17 @@ them as arbitrary loose root files.
 
 For Python application projects, keep a root `settings.py` configuration entry and a root `export.py` stable
 callable/debug surface. Add `server.py` only for a server runtime and `manager.py` only for a crawler or worker
-runtime. Keep `.env` local and ignored; commit a redacted `.env.example`. LangGraph and other Python AI projects
+runtime. When environment-based configuration is used, keep `.env` ignored and commit a redacted
+`.env.example`; do not introduce it into code-configured packages. LangGraph and other Python AI projects
 still require `export.py`; a framework manifest does not replace the stable export surface.
 
 Treat the named implementation package as a default, not a mandatory wrapper. First distinguish the application
 directory, Python import namespaces, and built distribution. When the user or repository defines the application
 directory itself as the deployment unit, explicitly owned layer packages may live directly beneath it. Do not
 add an otherwise redundant wrapper package for visual conformity. Conversely, `pyproject.toml` alone does not
-make a project distributable: configure discovery, build from a clean copy, inspect the artifact, and import it.
+make a project distributable: when distribution is required, configure discovery, build from a clean copy,
+inspect the artifact, and import it. A source-imported package with an encapsulated public API does not require
+a new distribution manifest.
 
 For a reusable Python library or framework, use its package-level public surface, such as `package/__init__.py`
 or a deliberate `api.py`. Do not add application-only root `settings.py`, `export.py`, `server.py`, or
@@ -130,8 +133,9 @@ root.
 - Treat a relational database or another durable store as the source of truth for task and business state.
   Use Redis or MQ for temporary coordination, locks, notification, or lightweight task references.
 - Add account-lock management only when the project uses accounts and the user explicitly requests locking.
-  Keep real account and session facts in MySQL/Postgres, keep only TTL coordination state in Redis, and hide
-  lock mechanics behind an account manager so workers only request an account and execute.
+  Prefer durable account storage and TTL coordination as separate concerns, but preserve an explicitly
+  established authoritative store; do not introduce a database migration to enforce this default. Document
+  persistence, retention and loss semantics, and hide lock mechanics behind an account manager.
 - Require the user or current project to define account rate, cooldown, acquisition, and TTL policies. Never
   copy timing or rate values from a reference project.
 - Store large responses, images, and artifacts in object storage or a durable blob store. Pass identifiers and
@@ -151,9 +155,9 @@ root.
   callbacks, listeners, streams, or other active producers can still enqueue work.
 - Make root `settings.py` the actual editable configuration surface for a Python application, not a
   forwarding-only shim. Reusable validation may live in an owned module, while concrete application defaults
-  and profiles remain discoverable at the root. Keep machine-local values and secrets in ignored root `.env`,
-  preserve process-environment precedence, and never log credentials, cookies, tokens, or full sensitive
-  payloads.
+  and profiles remain discoverable at the root. Respect the chosen code-only or environment-based configuration
+  contract. In environment-based applications, keep secrets in ignored local configuration and preserve
+  documented precedence. Never log credentials, cookies, tokens, or full sensitive payloads.
 - Log failures, abnormal parsing, external I/O, and state transitions with stable context. Avoid noisy success
   logs and duplicate context already attached by the logger.
 - Prefer directly debuggable Python file entrypoints over CLI-only designs. Allow command-line or `__main__`
@@ -175,6 +179,10 @@ root.
 
 Read [architecture.md](references/architecture.md) for any backend, crawler, API, worker, queue, database, or
 multi-process design.
+
+Read [embedded-workflows.md](references/embedded-workflows.md) when integrating a reusable package into an
+existing service, migrating traffic between implementations, replenishing a session/resource pool, handing
+submitted work to a polling worker, or documenting nested package architecture.
 
 Read [collection-workflows.md](references/collection-workflows.md) when a workflow discovers multiple items,
 fans out external I/O, aggregates overlapping results, rotates constrained resources, or needs an explicit
