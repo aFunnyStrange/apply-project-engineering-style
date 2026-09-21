@@ -1,5 +1,10 @@
 # Architecture and Runtime Boundaries
 
+For multi-platform host applications, apply [multi-platform-aggregation.md](multi-platform-aggregation.md)
+to the export/handler direction, lightweight shared capabilities and platform-owned settings. The
+single-service examples here do not require handlers to import an aggregate that already exports them,
+or require unrelated platform configuration to be moved into root settings.
+
 ## Contents
 
 - Clean project root
@@ -67,7 +72,9 @@ Let `manager` implement task scheduling and concurrency itself. It may use inter
 bounded queue, but do not introduce a second "concurrency executor" layer that only duplicates the manager.
 Nothing should call the manager as a reusable library; reuse the exported package API instead.
 
-Keep `export.py` independent of `server.py`, routers, handlers, and HTTP framework objects. Re-export or wrap
+Keep `export.py` independent of `server.py`, routers and HTTP framework objects. In the single-service
+shape it is also independent of handlers; an aggregate may export handler callables only when handlers never
+import that aggregate. Re-export or wrap
 stable service callables without copying their business logic. Accept explicit dependencies or factories so
 tests can inject doubles without starting the service.
 

@@ -1,5 +1,10 @@
 # Clean Project Root Layout
 
+For multi-platform host applications, apply [multi-platform-aggregation.md](multi-platform-aggregation.md)
+to the export/handler direction, lightweight shared capabilities and platform-owned settings. The
+single-service examples here do not require handlers to import an aggregate that already exports them,
+or require unrelated platform configuration to be moved into root settings.
+
 ## Contents
 
 - Root-directory rule

@@ -1,5 +1,10 @@
 # Verification Checklist
 
+For multi-platform host applications, apply [multi-platform-aggregation.md](multi-platform-aggregation.md)
+to the export/handler direction, lightweight shared capabilities and platform-owned settings. The
+single-service examples here do not require handlers to import an aggregate that already exports them,
+or require unrelated platform configuration to be moved into root settings.
+
 ## Contents
 
 - Scope
@@ -40,8 +45,8 @@
   behind `settings.py`.
 - Check imports and calls, not only folder names.
 - Confirm that routers and handlers do not query storage directly.
-- Confirm that a Python service exposes stable functionality through `export.py` and that handlers use that
-  public surface.
+- Confirm that a Python service exposes stable functionality through `export.py`; check the chosen
+  single-service or aggregate direction and ensure handlers never import an aggregate that exports them.
 - Confirm that `export.py` can be imported and exercised without starting the server or importing HTTP runtime
   state.
 - Run or import the documented root entrypoint from the documented working directory and confirm it does not
@@ -212,3 +217,8 @@ and a thin smoke client as valid entrypoints in the architecture checks above.
 For embedded package migrations, also apply [embedded-workflows.md](embedded-workflows.md): verify disabled
 routing has no new I/O, durable identifiers survive renames, failed final storage does not regenerate work,
 pending capacity prevents duplicate replenishment, and debug defaults cannot alter production policy.
+
+
+For multi-platform changes, also apply [multi-platform-aggregation.md](multi-platform-aggregation.md): verify
+common imports do not load platform runtimes, adapters alone own transition fields, shared refresh has a
+lifecycle owner in each process, and public status changes preserve platform retry and settlement decisions.

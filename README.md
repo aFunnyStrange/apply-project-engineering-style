@@ -45,7 +45,8 @@ Skill is enabled.
   do not add them to explicitly code-configured packages.
 - Keep root `settings.py` as the real editable application configuration surface rather than a forwarding shim.
 - Keep `export.py` for LangGraph and other Python AI applications; framework manifests do not replace it.
-- Layer services as `platform/infra -> repo -> service -> export.py -> handlers -> routers`.
+- Use the single-service layering example, or the acyclic aggregation alternative for multi-platform hosts;
+  keep shared capabilities independent of handler exports.
 - Use `platform`/`platforms` specifically to stabilize third-party APIs, versions, exceptions, and wire
   semantics; keep resource construction and lifecycle in infrastructure.
 - Expose directly testable Python application service, crawler, and worker functionality through `export.py`;
@@ -137,3 +138,21 @@ build scaffolding, injected connections and refresh callbacks, stable persisted 
 stage-specific retry and asynchronous continuation, atomic capacity replenishment, separate production/debug
 policy, and architecture documentation for nested packages. It introduces no platform-specific thresholds,
 provider configuration, storage migration or rollout authorization.
+
+
+## Multi-platform applications
+
+The [aggregation guide](references/multi-platform-aggregation.md) covers shared capabilities versus aggregate
+entrypoints, protocol-only packages versus host orchestration, platform-owned settings and runtimes, temporary
+response adapters, shared retry mechanics with platform decisions, service-owned configuration snapshots,
+and lightweight model/matcher adoption. Apply it only to the selected integrations and shared boundaries;
+platform billing, account policies and exact response states remain project-specific. Verify historical
+responses read-only and distinguish local template changes from live configuration deployment.
+
+
+## Rules can evolve during implementation
+
+You can add or correct rules while coding is underway; there is no need to edit the Skill first. Clear user
+instructions take precedence over its defaults within the task's authorized scope. A demonstrated bug or
+unsuitable default should be corrected and verified, not preserved for stylistic compliance. Project-specific
+exceptions stay local; reusable changes are written back to the Skill when you request a Skill update.

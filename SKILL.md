@@ -1,6 +1,6 @@
 ---
 name: apply-project-engineering-style
-description: Apply the user's engineering conventions when implementing, refactoring, or reviewing applications, services, crawlers, workers, AI workflows, reusable libraries, and Skills. Covers project boundaries, direct debugging, configuration ownership, async runtime and state ownership, optional capability compatibility, and verifiable delivery across languages.
+description: Apply the user's engineering conventions when implementing, refactoring, or reviewing applications, services, crawlers, workers, AI workflows, reusable libraries, and Skills. Covers multi-platform aggregation, project boundaries, direct debugging, configuration ownership, async runtime and state ownership, optional capability compatibility, and verifiable delivery across languages.
 ---
 
 # Apply Project Engineering Style
@@ -26,6 +26,25 @@ Resolve requirements in this order:
 
 Call out a material conflict instead of silently choosing. Do not turn a narrow fix into a repository-wide
 refactor merely because this Skill describes a preferred architecture.
+
+## Accept new rules and correct flawed defaults
+
+During every coding task using this Skill, accept explicit user additions, corrections and refinements as
+part of the current task contract, including rules introduced after implementation has begun. Apply a clear
+instruction within its authorized scope without requiring the user to edit this Skill first or reconfirm an
+already resolved preference. Preserve unrelated requirements and the precedence above.
+
+Do not preserve a bug or an unsuitable design merely because it follows a Skill example. When project
+facts, a reproducer or test results show that a default is wrong for the task, explain the evidence briefly,
+make the smallest justified correction within the authorized scope, and verify the affected behavior.
+Correct obsolete tests when the intended contract changes; do not weaken checks merely to hide a failure.
+Ask only when an unresolved choice materially affects scope or compatibility, not simply because a Skill
+default differs from a clear user instruction.
+
+Distinguish a task-specific override from a reusable Skill improvement. Record the former in the appropriate
+project documentation when useful; do not automatically make it a universal rule or modify the installed Skill
+during ordinary project work. When the user asks to improve the Skill, generalize only the supported lesson,
+update conflicting guidance and validate the result. Report any material departure and its reason concisely.
 
 ## Follow the implementation workflow
 
@@ -99,7 +118,8 @@ root.
 
 - For a Python service, expose service capabilities through `export.py`. Organize HTTP runtime call flow as
   `routers -> handlers -> export API -> services -> repositories -> infra/platform`, while allowing direct
-  functional testing through `export API -> services` without starting the server.
+  functional testing through `export API -> services` without starting the server. For a multi-platform host
+  whose root export aggregates handler entrypoints, use the acyclic alternative described below.
 - For a pure crawler or worker package, also expose package capabilities through `export.py`. Make `manager` the
   top-level runtime entry that imports those exports and directly owns scheduling and concurrency. Do not add a
   separate concurrency-executor layer above or below it merely to wrap the same responsibility.
@@ -155,7 +175,8 @@ root.
   callbacks, listeners, streams, or other active producers can still enqueue work.
 - Make root `settings.py` the actual editable configuration surface for a Python application, not a
   forwarding-only shim. Reusable validation may live in an owned module, while concrete application defaults
-  and profiles remain discoverable at the root. Respect the chosen code-only or environment-based configuration
+  and profiles remain discoverable at the root. In multi-platform hosts, root settings own shared service
+  configuration; platform-owned settings remain in their own discoverable modules. Respect the chosen code-only or environment-based configuration
   contract. In environment-based applications, keep secrets in ignored local configuration and preserve
   documented precedence. Never log credentials, cookies, tokens, or full sensitive payloads.
 - Log failures, abnormal parsing, external I/O, and state transitions with stable context. Avoid noisy success
@@ -179,6 +200,11 @@ root.
 
 Read [architecture.md](references/architecture.md) for any backend, crawler, API, worker, queue, database, or
 multi-process design.
+
+Read [multi-platform-aggregation.md](references/multi-platform-aggregation.md) when one service hosts multiple
+platform integrations, shared response/retry capabilities, platform runtimes, compatibility adapters or
+service-wide rule refresh. In this scope, its ownership and export alternatives refine the single-service
+examples below; do not require handlers to import a root export that already exports those handlers.
 
 Read [embedded-workflows.md](references/embedded-workflows.md) when integrating a reusable package into an
 existing service, migrating traffic between implementations, replenishing a session/resource pool, handing

@@ -1,5 +1,10 @@
 # Python Conventions
 
+For multi-platform host applications, apply [multi-platform-aggregation.md](multi-platform-aggregation.md)
+to the export/handler direction, lightweight shared capabilities and platform-owned settings. The
+single-service examples here do not require handlers to import an aggregate that already exports them,
+or require unrelated platform configuration to be moved into root settings.
+
 ## Contents
 
 - Compatibility and typing
@@ -158,7 +163,9 @@ project/
 - Require root `export.py` for concrete Python service, crawler, worker, LangGraph, agent, RAG, and other AI
   applications. Exempt reusable libraries/frameworks that expose their stable API from the named package.
 - Keep service entrypoints such as `server.py` thin.
-- Make service handlers call the stable `export.py` API. Keep that API directly testable with injected
+- Let single-service handlers call the stable `export.py` API; when an aggregate exports handlers, those
+  handlers call platform services directly and import common types from a separate public capability surface.
+  Keep the chosen business entrypoint directly testable with injected
   repositories or fakes so unit functionality does not require starting FastAPI or another server.
 - Make a pure crawler/worker `manager.py` the top-level scheduling and concurrency entry. Let it call
   `export.py`; do not add a separate concurrency-executor layer and do not design another caller above manager.
