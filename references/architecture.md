@@ -21,8 +21,9 @@ Keep the root limited to configuration/tool metadata, README files, thin entrypo
 selected owned source or layer directories. Read [project-layout.md](project-layout.md) before choosing a named
 implementation package or a flat application layout.
 
-Use the following roles as a default vocabulary. Combine adjacent layers only when the project is genuinely
-small and the boundary would add no testing or maintenance value.
+Use the following roles as vocabulary, not a directory checklist. Start with a direct readable flow and split
+only when a boundary adds concrete ownership, testing or maintenance value. For embedded platform packages,
+use [lightweight-platform-packages.md](lightweight-platform-packages.md); the full chains below are optional.
 
 | Layer | Owns | Must not own |
 | --- | --- | --- |
@@ -38,13 +39,13 @@ small and the boundary would add no testing or maintenance value.
 | `domain` / `models` | Stable entities, value objects, state enums, and contracts | Framework startup and external client details |
 | composition root | Load configuration, initialize resources, inject dependencies, start processes | Reusable business logic |
 
-For a Python service, use this construction order:
+When a Python service actually needs all these layers, one possible construction order is:
 
 ```text
 platform/infra -> repo -> service -> export.py -> handlers -> routers
 ```
 
-Route normal HTTP calls through the exported API:
+The corresponding full call chain is illustrative; omit forwarding-only layers:
 
 ```text
 router -> handler -> exported API -> service -> repository contract -> infrastructure adapter
@@ -84,8 +85,10 @@ application results from services and exports rather than HTTP responses.
 ## Dependency rules
 
 - Define contracts where they are consumed. Let adapters satisfy those contracts.
-- Inject long-lived clients, repositories, and services. Do not instantiate Redis, database, HTTP, or object
-  storage clients inside each operation.
+- For embedded clients, accept the host's existing connection, pool or client directly; infrastructure need
+  not be duplicated inside each package. A package runtime creates resources only for modes that need owned
+  defaults, reuses explicit injected objects and closes only what it owns. Do not instantiate Redis, database,
+  HTTP or object-storage clients inside each operation. Preserve thread-safety and event-loop constraints.
 - Keep external I/O boundaries asynchronous in long-lived, concurrent, request-serving, or streaming
   runtimes, and expose replaceable capabilities through contracts. A bounded one-shot tool may remain
   synchronous when an event loop provides no lifecycle or concurrency value. Select concrete HTTP, database,

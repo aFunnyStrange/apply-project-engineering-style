@@ -46,6 +46,56 @@ project documentation when useful; do not automatically make it a universal rule
 during ordinary project work. When the user asks to improve the Skill, generalize only the supported lesson,
 update conflicting guidance and validate the result. Report any material departure and its reason concisely.
 
+## Prefer direct, readable implementation
+
+First distinguish a client package from a highly encapsulated concurrent server. Server applications may
+benefit from `handlers -> services -> repositories -> infra`; API clients and protocol subpackages
+should organize around complete request objects in `api/`, signing and parsing. Concurrency alone does not
+make a client a server or require that stack.
+
+Use the fewest boundaries that express real protocol, business-state and resource ownership. A layer is a
+responsibility, not a required directory, class or function call. Do not add a forwarding method, factory,
+handler, adapter, service or repository merely to complete an architecture diagram. Prefer a direct call or
+re-export when arguments, results, policy and lifecycle are unchanged. Keep wrappers that perform actual
+compatibility mapping, validation, state transitions or resource management.
+
+For small API packages and embedded platform workflows, read
+[lightweight-platform-packages.md](references/lightweight-platform-packages.md). This reference takes precedence
+over the full-layer examples below for that scope. This style means visible request assembly and short call
+chains. Preserve package-relative imports, explicit inputs and existing resource ownership.
+
+For request/API, parser or protocol algorithm work, also read
+[client-components.md](references/client-components.md). Keep full URL, method, headers, query and body
+inspectable in the endpoint. Parameter encapsulation means independently callable computed business fields,
+not scattering ordinary request dictionaries into distant modules. Export request builders, algorithms and
+pure parsers explicitly; keep vendor-neutral primitives and transport in `platforms`. If a host framework provides Request,
+construct that native type directly in `api/`; keep spider files focused on business orchestration. Use only fictional
+examples in this Skill; never encode a reference project's identity, paths or proprietary protocol defaults.
+
+## Default to minimally invasive integration
+
+In an existing project, preserve the host's architecture and public entrypoints. A highly encapsulated server
+may retain `handlers -> services -> repositories -> infra`. A lightweight client used by that server should
+normally remain an owned package exposing its APIs and, when useful, a runtime for shared connections and
+lifecycle. Change only the required integration seams. A request to add or improve one client does not
+implicitly authorize reorganizing the host. Undertake a large architectural refactor only when explicitly
+requested; otherwise fix concrete local issues without expanding the assignment.
+
+## Reuse host infrastructure; keep standalone configuration usable
+
+For embedded clients, prefer accepting the host's actual connection, pool or client object. Do not create a
+second infrastructure stack or wrap every borrowed object in a provider solely for dependency injection.
+The host owns construction and shutdown of borrowed resources. A package runtime may create and close its
+own resources for standalone execution, but explicit injected objects take precedence and must not trigger
+construction or closure of an unused fallback. Respect connection thread-safety and event-loop ownership.
+
+Keep package `settings.py` complete and discoverable for package-owned configuration. Shared settings may
+explicitly alias or map the host's configuration: this is useful configuration reuse, not a prohibited
+forwarding-only business wrapper. Keep platform defaults local and document override precedence. If standalone
+execution without the host is required, apply host mapping at the integration entry or an explicitly selected
+profile; do not make ordinary package imports require the host or silently fall back after a configuration
+error. Reuse an injected resource as-is rather than reconstructing it from forwarded settings.
+
 ## Follow the implementation workflow
 
 1. Inspect the target tree, entrypoints, configuration, tests, and adjacent modules before editing.
@@ -54,8 +104,10 @@ update conflicting guidance and validate the result. Report any material departu
 3. For a new subsystem or structural refactor, establish a baseline of current behavior, entrypoints,
    configuration ownership, state, outputs, import paths, and deployment paths. Then sketch the intended
    layers, data flow, filesystem layout, import model, and distribution boundary before writing code.
-4. Keep transport, orchestration, persistence, and platform-specific behavior in separate boundaries.
-5. Define contracts at the consuming boundary and inject implementations at a composition root.
+4. Identify transport, orchestration, persistence and platform responsibilities; separate code only where
+   ownership, change patterns or testing justify it. Adjacent responsibilities may share a module.
+5. Pass dependencies explicitly at the consuming boundary. Add a protocol or factory only for a real
+   substitution or lifecycle need; concrete types and ordinary functions are often sufficient.
 6. Implement the smallest coherent change; preserve deployment paths, public APIs, data, and operational
    behavior unless the request explicitly changes them.
 7. For a reusable framework or library, identify its declared interpreter, dependency-version, optional-extra,
@@ -89,11 +141,12 @@ implementation, graph nodes, prompts, migrations, maintained scripts, and tests 
 owned packages, source trees, conventional test trees, crates, modules, or workspace locations; do not leave
 them as arbitrary loose root files.
 
-For Python application projects, keep a root `settings.py` configuration entry and a root `export.py` stable
-callable/debug surface. Add `server.py` only for a server runtime and `manager.py` only for a crawler or worker
+For Python application projects, keep configuration and stable callable APIs easy to find, normally through
+`settings.py` and `export.py`. An existing host may call embedded package exports directly; do not add a root
+aggregate or debug entry merely to forward those calls. Add `server.py` only for a server runtime and `manager.py` only for a crawler or worker
 runtime. When environment-based configuration is used, keep `.env` ignored and commit a redacted
 `.env.example`; do not introduce it into code-configured packages. LangGraph and other Python AI projects
-still require `export.py`; a framework manifest does not replace the stable export surface.
+still need a usable callable surface; a framework manifest alone does not provide one.
 
 Treat the named implementation package as a default, not a mandatory wrapper. First distinguish the application
 directory, Python import namespaces, and built distribution. When the user or repository defines the application
@@ -116,10 +169,9 @@ root.
 
 ## Enforce the cross-language core
 
-- For a Python service, expose service capabilities through `export.py`. Organize HTTP runtime call flow as
-  `routers -> handlers -> export API -> services -> repositories -> infra/platform`, while allowing direct
-  functional testing through `export API -> services` without starting the server. For a multi-platform host
-  whose root export aggregates handler entrypoints, use the acyclic alternative described below.
+- For a Python service, expose a callable business entry. A router may call a platform package export
+  directly. Add handlers, services, repositories and adapters only when they own substantive behavior. The
+  full layered chain is an option for complex services, not a mandatory call path. Preserve acyclic imports.
 - For a pure crawler or worker package, also expose package capabilities through `export.py`. Make `manager` the
   top-level runtime entry that imports those exports and directly owns scheduling and concurrency. Do not add a
   separate concurrency-executor layer above or below it merely to wrap the same responsibility.
@@ -167,23 +219,24 @@ root.
   pure computation synchronous unless an async contract requires otherwise. A bounded one-shot tool may remain
   synchronous when it has no concurrency, cancellation, streaming, or shared-runtime requirement; do not add
   an event loop merely for stylistic uniformity.
-- Define HTTP and other external transports behind async interfaces, traits, or protocols. Select the concrete
-  client in configuration or the composition root so it can be replaced without rewriting business logic.
+- Use the project's async transport in concurrent code. Pass the concrete client directly when its type is
+  stable; introduce a transport interface only when replacement or a meaningful testing seam requires it.
 - Reuse clients, pools, and sessions. Offload unavoidable synchronous I/O using the language's supported
   blocking adapter instead of blocking the async runtime.
 - Give every background task a retained owner and shutdown path. Do not treat an empty queue as quiescence while
   callbacks, listeners, streams, or other active producers can still enqueue work.
-- Make root `settings.py` the actual editable configuration surface for a Python application, not a
-  forwarding-only shim. Reusable validation may live in an owned module, while concrete application defaults
+- Make root `settings.py` the discoverable configuration surface for a Python application. Explicit aliases
+  or mappings to host-owned shared settings are valid; avoid redundant copies and unrelated indirection.
+  Reusable validation may live in an owned module, while concrete application defaults
   and profiles remain discoverable at the root. In multi-platform hosts, root settings own shared service
   configuration; platform-owned settings remain in their own discoverable modules. Respect the chosen code-only or environment-based configuration
   contract. In environment-based applications, keep secrets in ignored local configuration and preserve
   documented precedence. Never log credentials, cookies, tokens, or full sensitive payloads.
 - Log failures, abnormal parsing, external I/O, and state transitions with stable context. Avoid noisy success
   logs and duplicate context already attached by the logger.
-- Prefer directly debuggable Python file entrypoints over CLI-only designs. Allow command-line or `__main__`
-  testing in every project's `export.py`; keep other Python entrypoints runnable as `python xx.py` with settings
-  or editable debug parameters.
+- Prefer directly debuggable Python files with editable parameters or external sample paths. A pure
+  `export.py` may remain re-exports only. Do not add CLI parsing, DebugSettings or a debug runtime without
+  a concrete need; follow an explicit no-CLI requirement.
 - Treat `export.py` as a Python convention. In Rust and other languages, expose testable functionality through
   the ecosystem's normal public module, crate, package, or library surface.
 - Maintain three test levels: unit tests for one isolated executable flow, integration tests for one narrow

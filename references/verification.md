@@ -32,8 +32,11 @@ or require unrelated platform configuration to be moved into root settings.
 
 - Confirm the project root contains only configuration/tool metadata, README files, and required thin
   entrypoints.
-- For Python, confirm required thin `settings.py` and `export.py` entries, plus optional `server.py` or
-  `manager.py` entries, match the actual runtimes.
+- For Python, verify discoverable configuration and callable package/application exports. Do not require a
+  redundant root aggregate; optional server/manager entrypoints must match actual runtimes.
+- For embedded clients, verify injected objects prevent fallback construction, borrowed resources remain
+  open after package shutdown, and owned resources close correctly. Check host config mappings and supported
+  standalone execution independently; no import should initialize a production connection.
 - For other languages, confirm Python filenames were not copied mechanically and implementation follows the
   ecosystem's normal source, package, crate, module, workspace, and test layout.
 - Confirm business modules, graph nodes, prompts, tests, migrations, and maintained scripts live inside the
@@ -222,3 +225,16 @@ pending capacity prevents duplicate replenishment, and debug defaults cannot alt
 For multi-platform changes, also apply [multi-platform-aggregation.md](multi-platform-aggregation.md): verify
 common imports do not load platform runtimes, adapters alone own transition fields, shared refresh has a
 lifecycle owner in each process, and public status changes preserve platform retry and settlement decisions.
+
+
+## Client request, algorithm and parser boundaries
+
+For client refactors, apply [client-components.md](client-components.md). Inspect the complete request before
+I/O, verify field/signature consistency and public exports, and parse captured responses without a client.
+Do not accept a directory-only split, opaque request tuples, static dictionary relays or network-bound
+parsers as evidence of readability. Verify vendor-neutral crypto with independent vectors and retain the
+actual stream, request-context and resource-ownership contracts.
+
+When a host framework supplies Request, verify API builders return that native type and the normal
+scheduler/callback path accepts it directly. Check that spider files contain business orchestration while
+endpoint dictionaries, algorithms and pure parsers live in separately importable modules.

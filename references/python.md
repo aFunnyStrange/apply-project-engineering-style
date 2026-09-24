@@ -26,7 +26,8 @@ or require unrelated platform configuration to be moved into root settings.
   unavoidable framework or third-party boundaries instead of letting it spread through services.
 - Use `TypedDict` for stable mapping shapes, Pydantic models for validated boundaries, and dataclasses or domain
   classes for behavior-rich internal data where appropriate.
-- Use `TYPE_CHECKING` only for typing imports that would otherwise create a runtime cycle.
+- Use `TYPE_CHECKING` for annotation-only dependencies when avoiding runtime imports or cycles; do not
+  replace known types with `Any`. For Python 3.8, use `List`, `Dict`, `Tuple`, `Optional` and `Union`.
 - Prefer explicit `Optional` handling and early returns over unchecked attribute access or broad casts.
 
 Example:
@@ -51,13 +52,16 @@ class TaskStorageProtocol(Protocol):
 
 ## Contracts and dependency injection
 
-- Use `Protocol` for structural duck typing when callers need a capability without requiring implementations to
-  inherit from a base class. This is the default for repository, storage, transport, capture, and callback seams.
+- Prefer concrete types for known clients and responses, using `TYPE_CHECKING` for annotation-only imports
+  when appropriate. Use `Protocol` or a callable type for a real replaceable seam; do not invent an interface
+  for every function, storage call or transport.
 - Use `ABC` plus `@abstractmethod` when explicit inheritance, shared behavior, or lifecycle enforcement is part
   of the design. Raise `NotImplementedError` from abstract method bodies when a concrete body is required.
 - Do not create both a Protocol and an ABC for the same boundary without a concrete reason.
-- Inject dependencies through constructors or explicit function parameters. Initialize concrete clients and
-  adapters in a factory or application composition root.
+- Inject actual connections, pools or clients through constructors or explicit parameters. In an embedded
+  package the host normally constructs them; a package-owned runtime may construct defaults for standalone
+  use. Do not add a factory/provider wrapper unless it adds real lifecycle or replacement behavior. Close
+  owned resources only; injected objects take precedence over configuration-based construction.
 - Give each crawler/spider a one-way dependency on common downloader and repository contracts. Do not chain
   platform spiders through each other.
 - Publish stable callable APIs in root `export.py` for concrete service, crawler, and worker applications. Let
@@ -66,7 +70,8 @@ class TaskStorageProtocol(Protocol):
 - For a reusable Python framework or library, publish the stable surface through the named package's
   `__init__.py`, a deliberate `api.py`, or typed public modules. Do not add a root `export.py` or `manager.py`
   unless the repository also contains that concrete application runtime.
-- Keep `export.py` free of HTTP framework objects and server startup. Re-export or wrap service operations
+- Keep `export.py` free of HTTP framework objects and server startup. Re-export operations directly; wrap
+  only when performing real adaptation
   without duplicating business logic, and accept injectable dependencies where direct unit tests need doubles.
 
 ## Pydantic v2
@@ -114,8 +119,9 @@ class WorkerSettings(BaseModel):
   no concurrency, cancellation, streaming, shared event-loop, or async-caller requirement. Record the reason
   when this differs from the surrounding application runtime; do not convert a real application boundary to
   synchronous code for convenience.
-- Define an async `Protocol` for HTTP/downloader behavior and inject the selected implementation. Do not import a
-  concrete HTTP library into services or bind the Skill to one client.
+- Use the established async HTTP/downloader client directly when its concrete type is known. Define a
+  `Protocol` only for a meaningful replaceable contract. The Skill does not mandate one HTTP library or a
+  new transport abstraction for every client package.
 - Reuse async HTTP sessions and connection pools. Do not create a new client for each request.
 - Offload unavoidable synchronous SDK or filesystem work with an adapter supported by the declared runtime.
   `asyncio.to_thread` requires Python 3.9+ unless the project explicitly supplies or accepts an exception.
@@ -160,8 +166,8 @@ project/
 - Read [project-layout.md](project-layout.md) for the complete root allowlist.
 - Do not create a redundant wrapper namespace merely to imitate the named-package diagram. In a flat layout,
   keep every layer explicitly owned and avoid top-level package names that shadow the standard library.
-- Require root `export.py` for concrete Python service, crawler, worker, LangGraph, agent, RAG, and other AI
-  applications. Exempt reusable libraries/frameworks that expose their stable API from the named package.
+- Use a stable callable surface, normally package/application `export.py`. An existing host can call package
+  exports directly without a redundant root aggregate; reusable libraries may use their named package API.
 - Keep service entrypoints such as `server.py` thin.
 - Let single-service handlers call the stable `export.py` API; when an aggregate exports handlers, those
   handlers call platform services directly and import common types from a separate public capability surface.
@@ -173,8 +179,8 @@ project/
 - Use `async def main()` plus `asyncio.run(main())` for directly executed Python runtimes.
 - Make the documented runtime file the real entrypoint from the project root. Do not require callers to change
   directories, mutate `sys.path`, or invoke a CLI wrapper before normal execution.
-- Allow every project's `export.py` to provide command-line tests or guarded
-  `if __name__ == "__main__":` tests because it may expose many package functions.
+- Keep `export.py` as pure re-exports when sufficient. Direct guarded demos are optional; respect no-CLI
+  requirements and do not add command-line parsing solely to demonstrate exports.
 - Do not add command-line interfaces elsewhere unless the user explicitly asks. Run other tools and entrypoints
   as `python xx.py`; adjust a settings file or deliberately editable Python parameters for Console Debugger
   workflows.
@@ -202,8 +208,10 @@ project/
 
 ## Configuration and tests
 
-- Make root `settings.py` the actual editable configuration surface for a concrete application. Reusable
-  validation and parsing may live in owned modules, but the root file must not be a forwarding-only shim.
+- Make `settings.py` a complete, discoverable configuration surface for its owned defaults. Reusable
+  validation and parsing may live in owned modules. Explicitly aliasing or mapping host shared settings is
+  valid for an embedded package; do not duplicate credentials or recreate an injected connection from them.
+  Keep host-free standalone configuration usable when promised, with documented override precedence.
   Do not scatter environment reads through services, graphs, nodes, or spiders.
 - If the application uses environment configuration, keep local `.env` ignored and commit a redacted
   `.env.example`. Code-configured embedded packages need neither file.

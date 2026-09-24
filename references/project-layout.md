@@ -81,11 +81,13 @@ Interpret the entries as follows:
   and framework manifests are project/tool configuration.
 - `.env` is optional: when used, keep it ignored and never commit secrets.
 - `.env.example` documents the redacted variable contract when environment configuration is used.
-- `settings.py` is the authoritative editable application configuration surface. Keep reusable validation
-  models and parsing helpers in an owned module, but do not reduce the root file to a forwarding-only shim.
-- `export.py` is required for Python application projects, including services, crawlers, workers, LangGraph,
-  agent, RAG, and other AI workflows. It exposes a stable directly testable API and may provide the permitted
-  `__main__` or CLI debug surface.
+- `settings.py` is the discoverable configuration entry for its application/package. Keep owned defaults
+  editable there. Embedded packages may explicitly reuse host shared settings through aliases or mappings;
+  avoid duplicating common credentials or hiding ownership behind multiple forwarding modules. Preserve
+  host-free standalone configuration when required.
+- `export.py` is the usual stable callable surface. An existing host can use embedded package exports
+  directly without a redundant root aggregate. Keep pure re-exports when sufficient; optional direct demos
+  need no CLI. See [lightweight-platform-packages.md](lightweight-platform-packages.md).
 - `server.py` exists only when the project has a server process. Keep it to settings loading, dependency
   construction, logging setup, application creation, and runtime start.
 - `manager.py` exists only when the project has a crawler/worker process. Keep it as the executable bootstrap

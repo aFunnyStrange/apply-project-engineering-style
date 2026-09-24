@@ -25,14 +25,28 @@ parallel platform-prefixed files. Preserve established protocol packages. Extrac
 when its lifecycle, state and operational responsibilities justify it; a scripts directory is for entrypoints,
 not a hiding place for a substantive service. Avoid maintaining duplicate protocol implementations after a move.
 
+## Prefer an embedded workflow when it keeps ownership clearer
+
+A valid lightweight shape is `router -> platform/export.py -> platform business -> platform protocol`, with
+`worker -> platform update_callback(row)` for submitted work. The platform business package may own account
+rotation, billing and persistence using injected pools and host response callbacks. Its protocol subpackage
+owns only upstream input/output. Do not retain host handlers/services/infra/adapters that merely relay calls.
+Keep existing shared response implementations at the host boundary and pass them in when the package needs
+classification or formatting. This does not remove platform decisions needed before settlement.
+
+A generic retry engine is optional. Share it only when real callers share attempt semantics; platform account
+rotation and an already-submitted task's polling are different operations. Do not infer retry or billing from
+public response status alone. Read [lightweight-platform-packages.md](lightweight-platform-packages.md).
+
 ## Separate reusable capabilities from application entrypoints
 
-Expose common response types, rule readers and retry contracts through a lightweight public surface, such as
+When multiple consumers actually need new common capabilities, expose them through a lightweight public surface, such as
 `capabilities`. It must not import platform handlers, application startup, concrete connections or all vendor
 SDKs. Internal framework modules may import implementation modules directly to avoid reverse dependencies;
 platform consumers and documentation should use the public surface consistently.
 
-A root `export.py` that aggregates full business entrypoints has a different role. Two valid shapes are:
+If needed, a root `export.py` that aggregates full business entrypoints has a different role. It is optional
+when routers already call package exports. Two possible aggregate shapes are:
 
 - A single service's handlers call a service export; the export does not import those handlers.
 - A multi-platform host's routers and root exports both call platform handler entrypoints; handlers do not
@@ -43,6 +57,11 @@ behind response-model imports. Neither export style should initialize production
 The aggregate can offer the same parameter construction and complete workflow used by routers for IDE
 execution. A protocol demo should exercise protocol operations; a business demo should enter the actual
 business workflow. State which it tests, and remove duplicate business orchestration from demos.
+
+Host infrastructure can pass its existing connection or pool objects directly into platform packages; they
+need not each implement infra. Package settings may explicitly map common host settings while retaining
+complete platform-owned defaults for direct execution. Injected objects are reused, not reconstructed, and
+only their owner closes them. Keep standalone profiles independent of mandatory host imports when required.
 
 Root settings own service-wide defaults and lifecycle configuration. Platform configuration lives in an owned
 platform module, for example `config/<platform>/settings.py`. The root need not collect every platform's

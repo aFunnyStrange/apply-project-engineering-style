@@ -14,6 +14,9 @@ not prescribe a database, lock policy, resource quota, provider, or rollout defa
 - Debug clients and nested architecture
 - Verification scenarios
 
+For lightweight platform packages, read [lightweight-platform-packages.md](lightweight-platform-packages.md).
+Nested services, adapters and domain packages below are options, not required scaffolding.
+
 ## Package and configuration boundaries
 
 Distinguish an importable source package, a deployed application and an installable distribution. Encapsulated
@@ -22,8 +25,10 @@ when installation/distribution is required. A nested package can have its own do
 state and API without becoming a separate service. Identify any shared sibling dependencies rather than
 claiming the nested directory can be copied independently.
 
-The composition root owns external configuration and constructs clients/pools. Reusable operations accept
-borrowed connections and typed provider callbacks. State whether each resource is borrowed or owned; close
+The host composition root normally provides actual connections/pools/clients to an embedded package.
+Accept these directly; typed provider callbacks are useful only when replacement or acquisition behavior is
+needed. Package standalone entrypoints may create defaults from package settings. Explicit injected objects
+take precedence, without also instantiating fallback resources. State whether each resource is borrowed or owned; close
 only owned resources. Share clients within the appropriate event loop/process, and avoid creating asynchronous
 pools in temporary synchronous-request event loops. Imports must not create production connections.
 
@@ -32,6 +37,11 @@ callers to restart a submitted operation merely to supply a replacement. Keep pr
 supplier-selection logic outside the package. Normalize legacy input shapes once at the boundary, and use
 one canonical representation internally. Distinguish unknown values from explicit choices such as direct
 connection; never silently treat missing configuration as permission for a fallback.
+
+Package settings may explicitly alias or map host-owned shared configuration while retaining local platform
+defaults. This useful configuration forwarding is distinct from redundant business-call forwarding. If
+host-free standalone use is supported, keep host imports in the integration entry or a selected host profile.
+Do not use broad import/connection exception handling to silently switch configuration or databases.
 
 Honor the project's configuration mechanism. Code defaults are valid for an embedded package; environment
 loading belongs only where that contract exists. Document units, allowed ranges, trigger conditions and

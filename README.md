@@ -27,6 +27,23 @@ The Skill follows the current request and repository conventions first. It appli
 conventions only where the project is silent and does not expand the refactoring scope merely because the
 Skill is enabled.
 
+## Lightweight API and platform packages
+
+Distinguish clients from highly encapsulated concurrent servers: the latter can retain a full layered stack.
+For clients, prefer complete request objects in `api/` and short call chains. Layers describe responsibilities, not a
+mandatory handler/service/repository stack. Keep protocol input/output separate from platform business state;
+remove forwarding-only wrappers, inject existing host capabilities, and let the worker own polling cadence.
+See [the lightweight package guide](references/lightweight-platform-packages.md) for the current pattern.
+
+In existing projects, integrate with minimal intrusion: retain the host server structure, expose client APIs
+and any necessary runtime from an owned package, and change only required seams. Large architectural
+reorganization requires an explicit request.
+
+Embedded clients normally borrow the host's connection/pool/client objects directly. A standalone runtime
+creates only its own defaults and closes only owned resources. Package settings retain complete local
+configuration and may explicitly map shared host configuration; this is legitimate reuse, not redundant
+business forwarding. Injected resources take precedence over constructing new ones.
+
 ## Core conventions
 
 - Keep the project root limited to configuration/tool metadata, README files, thin entrypoints, and
@@ -39,7 +56,8 @@ Skill is enabled.
 - Treat the clean-root rule as cross-language, but use native layouts rather than copying Python filenames.
 - Use root `export.py`/`manager.py` for concrete Python application runtimes; reusable frameworks and libraries
   expose their stable API from the named package instead.
-- For Python applications, keep root `settings.py` and `export.py`; add `server.py` only for a server runtime
+- For Python applications, normally use `settings.py` and `export.py`; an existing host may reuse package
+  exports without another root aggregate. Add `server.py` only for a server runtime
   and `manager.py` only for a crawler/worker runtime.
 - Use `.env` and a redacted `.env.example` when environment configuration is part of the application contract;
   do not add them to explicitly code-configured packages.
@@ -156,3 +174,15 @@ You can add or correct rules while coding is underway; there is no need to edit 
 instructions take precedence over its defaults within the task's authorized scope. A demonstrated bug or
 unsuitable default should be corrected and verified, not preserved for stylistic compliance. Project-specific
 exceptions stay local; reusable changes are written back to the Skill when you request a Skill update.
+
+
+## Inspectable client components
+
+Keep complete URLs, methods, headers, query and body visible in endpoint request builders. Encapsulate
+computed business fields independently from vendor-neutral standard primitives and transport; keep parsers
+callable with offline responses. Export these capabilities explicitly. Static dictionaries do not need a
+separate parameter layer. See [client components](references/client-components.md) for a complete fictional
+example and verification criteria; the Skill contains no project-specific reference names or machine paths.
+
+For framework-based crawlers, reuse native Request objects. Keep explicit endpoint fields in separate API
+modules and algorithms/parsers outside spiders; spiders retain business sequencing and callback wiring.
