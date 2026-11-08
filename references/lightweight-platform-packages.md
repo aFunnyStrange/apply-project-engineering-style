@@ -37,9 +37,10 @@ host routers / worker
         -> protocol/
             api/                # One endpoint per file or folder, plus export.py
             parser/             # Response parsing, independent of HTTP scheduling
-            algorithms/         # Public vendor signing/device functions
-                internal/       # Complex private algorithm implementation when needed
-            platforms/          # Small standard crypto/transport helpers, when useful
+            algorithms/         # Public calculated-parameter exports
+                request_sign/   # Flat, self-contained: __init__.py, sign.py, crypto.py as needed
+                device_token/   # Independent package, no shared algorithm foundation
+            platforms/          # Transport/storage/third-party adaptation
 ```
 
 Treat the tree as an example. Keep settings, exports and useful demos easy to find; group multiple related
@@ -69,12 +70,20 @@ Read [client-components.md](client-components.md) for the full request/algorithm
 complete fictional example. Endpoint modules expose the method, literal full URL, headers, query, body and
 calculated field inputs together. Do not introduce base-URL/path assembly, anonymous request tuples or
 forwarding-only endpoint files. Ordinary dictionaries belong beside the request; computed business fields
-belong in independently callable algorithms. Standard primitives and transport belong in vendor-neutral
-platform capabilities. Parsers accept responses independently of network clients and have explicit exports.
+belong in independently callable algorithms. Algorithm-local helpers stay inside each independent algorithm package; use standard primitives from
+libraries directly. Transport belongs in platform capabilities. Parsers accept responses independently of network clients and have explicit exports.
 
 Keep meaningful device/session/version facts and per-request encryption material paired with their
 responses. A shared header group may be factored when genuinely reused, but endpoint-specific fields and
 its application must remain visible. Use relative imports and the existing native Request type when useful.
+
+## Encapsulate execution to improve readability
+
+A small public runtime execution API is useful when it gathers real low-level execution responsibilities.
+Keep the caller's business sequence visible while the runtime owns repeated session/context setup, sending,
+parsing, logging and cleanup as needed. Preserve independently callable builders, algorithms and parsers;
+use the same implementations beneath both the runtime and the demos. Keep execution separate from manager
+scheduling. See [script workflow style](scripted-crawlers.md#expose-a-readable-runtime-execution-api).
 
 ## Remove abstraction that adds no behavior
 

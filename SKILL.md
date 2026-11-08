@@ -59,16 +59,25 @@ handler, adapter, service or repository merely to complete an architecture diagr
 re-export when arguments, results, policy and lifecycle are unchanged. Keep wrappers that perform actual
 compatibility mapping, validation, state transitions or resource management.
 
+A public runtime execution API is encouraged when it hides repeated low-level execution mechanics and makes
+business call sites readable. Distinguish component assembly, business context and script lifecycle by actual
+responsibility; do not impose three layers. Trace real callers before turning observed code into a convention.
+Keep its implementation direct, resource ownership explicit, and scheduling in
+the manager; retain independently usable request builders, algorithms and parsers. Removing empty forwarding
+layers does not mean forcing callers to repeat session, execution, logging or cleanup code.
+
 For small API packages and embedded platform workflows, read
 [lightweight-platform-packages.md](references/lightweight-platform-packages.md). This reference takes precedence
 over the full-layer examples below for that scope. This style means visible request assembly and short call
 chains. Preserve package-relative imports, explicit inputs and existing resource ownership.
 
 For request/API, parser or protocol algorithm work, also read
-[client-components.md](references/client-components.md). Keep full URL, method, headers, query and body
+[client-components.md](references/client-components.md). Computed-parameter packages are independently
+portable business capabilities with flat local implementations, not clients of a shared project-local
+algorithm/crypto foundation. Prefer one public `__init__.py` per algorithm package. Keep full URL, method, headers, query and body
 inspectable in the endpoint. Parameter encapsulation means independently callable computed business fields,
 not scattering ordinary request dictionaries into distant modules. Export request builders, algorithms and
-pure parsers explicitly; keep vendor-neutral primitives and transport in `platforms`. If a host framework provides Request,
+pure parsers explicitly; keep transport in `platforms` and algorithm helpers local to their independent packages. If a host framework provides Request,
 construct that native type directly in `api/`; keep spider files focused on business orchestration. Use only fictional
 examples in this Skill; never encode a reference project's identity, paths or proprietary protocol defaults.
 
@@ -262,6 +271,10 @@ examples below; do not require handlers to import a root export that already exp
 Read [embedded-workflows.md](references/embedded-workflows.md) when integrating a reusable package into an
 existing service, migrating traffic between implementations, replenishing a session/resource pool, handing
 submitted work to a polling worker, or documenting nested package architecture.
+
+Read [scripted-crawlers.md](references/scripted-crawlers.md) for lightweight script composition, manager/worker
+code boundaries, configuration ownership, readable calls and per-worker logging. This reference specifies code
+style only; it does not prescribe database design or business policies.
 
 Read [collection-workflows.md](references/collection-workflows.md) when a workflow discovers multiple items,
 fans out external I/O, aggregates overlapping results, rotates constrained resources, or needs an explicit

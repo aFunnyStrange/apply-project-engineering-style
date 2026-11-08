@@ -186,3 +186,26 @@ example and verification criteria; the Skill contains no project-specific refere
 
 For framework-based crawlers, reuse native Request objects. Keep explicit endpoint fields in separate API
 modules and algorithms/parsers outside spiders; spiders retain business sequencing and callback wiring.
+
+## Independent algorithms and script workflows
+
+Calculated-parameter packages own flat local implementations and helper code, without a shared project-local
+crypto foundation. They expose one public `__init__.py` and can be copied and tested without the parent
+application. Request assembly stays equally inspectable. See [client components](references/client-components.md).
+
+For script workflows, keep demos as callers of reusable functions, configuration in one declared owner, and
+request construction easy to step through. Workers own one execution round; the manager owns scheduling.
+Separate worker log files without hiding useful terminal progress. Avoid forwarding layers and speculative
+modes. This update concerns code style, not database or business policies. See
+[script workflow style](references/scripted-crawlers.md).
+
+Runtime encapsulation is useful for readability: expose a small execution API over substantive low-level
+session, transport, parsing, logging and cleanup code. Keep independent component APIs, flat implementation
+and explicit ownership; the manager still owns scheduling. Avoid both forwarding-only wrappers and making
+every caller repeat execution machinery.
+
+Derive runtime conventions from real call paths: distinguish component assembly, business execution context
+and script lifecycle without requiring three layers. Expose both resource-borrowing tools and owned-resource
+convenience entrypoints where useful. Keep imports free of runtime side effects; allow named builders when
+request construction depends on a selected context. Treat incidental duplication in existing code as evidence
+to assess, not a pattern to standardize.

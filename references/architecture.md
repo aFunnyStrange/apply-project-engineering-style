@@ -27,7 +27,7 @@ use [lightweight-platform-packages.md](lightweight-platform-packages.md); the fu
 
 | Layer | Owns | Must not own |
 | --- | --- | --- |
-| `platform` / `platforms` | Stable project-owned semantics over unstable third-party APIs, versions, exceptions, wire formats, crypto/codecs, and OS capabilities | Business workflows, persistence policy, or leaking vendor types upward |
+| `platform` / `platforms` | Stable project-owned semantics over unstable third-party APIs, versions, exceptions, wire formats, codecs, and OS capabilities | Business workflows, persistence policy, or leaking vendor types upward |
 | `infra` / `infrastructure` | Resource construction and lifecycle such as database pools, cache/MQ clients, filesystem access, and process logging | Business decisions or presenting raw client methods as domain semantics |
 | `repo` / `repositories` | Persistence semantics, queries, durable state transitions, mapping storage data to domain data | HTTP responses or crawler orchestration |
 | `service` / `services` | Use cases, business validation, domain orchestration, transaction boundaries | Route registration, graph-framework state, or direct environment parsing |
@@ -195,3 +195,8 @@ and keep that decision separate from durable task facts.
 - Preserve deployment paths, log paths, Docker entrypoints, and external API shapes unless the current request
   changes them.
 - For a narrow maintenance request, fix the specified surface and avoid unrelated architecture cleanup.
+
+For independent calculated-parameter packages, follow [client-components.md](client-components.md):
+algorithm-local cryptographic helpers are not a shared platform layer. For script-oriented crawlers, use
+[scripted-crawlers.md](scripted-crawlers.md); repository/pool contracts above express ownership, not a mandate
+to introduce classes or forwarding layers around a local account list and a few business functions.

@@ -11,25 +11,33 @@ Keep this Skill independent of reference projects, machine paths, credentials an
   field dictionaries beside the request. A small body/header function in the same endpoint module is fine.
   Share a substantial common header group only when multiple endpoints really use it; keep endpoint-specific
   fields and the assembly of that group visible. Do not reduce the endpoint to an opaque tuple or dispatcher.
-- `algorithms/`: independently callable calculations for business fields such as signatures, encrypted
-  tokens and derived device identifiers. These functions accept explicit inputs and return computed values.
-  They own field order, encoding rules, key selection and protocol-specific constants. Large private
-  implementations may live in `algorithms/internal/`.
-- `platforms/`: vendor-neutral capabilities used by the client, such as standalone Request values only when the host has none, standard-library
-  encoding/cryptographic wrappers and asynchronous transport. Generic crypto accepts data, keys, IVs and
-  algorithm options; it must not select business keys, sessions, versions, URLs or field layouts. Do not
-  reimplement a standard primitive when an existing library supplies it. Add wrappers for a shared contract,
-  not every single standard-library call. Resource construction remains at the composition boundary.
+- `algorithms/`: business calculations grouped by computed parameter or independently debugged protocol
+  variant. Each algorithm package owns its implementation, constants, serialization/types and any small
+  crypto helpers. Keep files flat within that package; add a subfolder only for substantial complexity.
+  Do not share a project-local base algorithm, `algorithms/common`, `algorithms/internal`, or
+  `platforms/crypto.py` across these packages. Each package must work when copied on its own with its declared
+  third-party dependencies. Call standard crypto libraries directly; independence does not mean reimplementing
+  cryptographic primitives. Small local helper duplication is preferable to hidden coupling between algorithms.
+- `platforms/`: transport, storage and third-party/OS adaptation. It does not own calculated business parameters
+  or a common algorithm foundation. A storage SDK's own checksum remains a storage implementation detail;
+  do not move unrelated SDK internals into business algorithm packages. Resource construction remains at the
+  composition boundary.
 - `parser/`: offline decode, envelope validation and endpoint result interpretation. Accept full response
   text/bytes or an already decoded mapping, and return clear data or a protocol-specific error. Keep generic
   decoding separate from business status checks where they differ. Shared decode/envelope helpers need not
   become a framework or one directory each.
 - Explicit exports: export request builders, business algorithms and parsers through maintained public
-  modules and a package-level entry when useful. Use direct re-exports and explicit names. Exporting functions
+  modules and a package-level entry when useful. Prefer each algorithm package's `__init__.py` and an
+  `algorithms/__init__.py` with explicit aliases such as `web_sign` and `app_sign`. Do not duplicate the same
+  exports in both `__init__.py` and `export.py`. Keep an application-level `export.py` only where it already
+  serves a distinct public boundary. Use direct re-exports and explicit names. Exporting functions
   does not mean combining their implementations or exporting every internal helper.
 
 The normal call path is `build_request(...) -> await transport.download(request) -> parse_response(...)`.
-Callers may use any one of these capabilities independently. A stateful client may retain orchestration,
+Callers may use any one of these capabilities independently. A public runtime may encapsulate the real
+execution mechanics while using these same components. If final request inputs depend on a selected context,
+a named builder and explicit arguments may be supplied to execution; keep the builder independently callable
+and its request fields inspectable. A stateful client may retain orchestration,
 stream ownership or compatibility mapping, but should use the same public builder and parser functions.
 
 ## What parameter encapsulation means
@@ -135,7 +143,7 @@ class Request:
     body: Optional[bytes] = field(default=None, repr=False)
 ```
 
-`platforms/crypto.py`:
+`algorithms/request_sign/crypto.py`:
 
 ```python
 import hashlib
@@ -152,12 +160,12 @@ def hmac_hex(key: bytes, data: bytes, digest_name: str) -> str:
     return hmac.new(key, data, digest_name).hexdigest()
 ```
 
-`algorithms/signature.py`:
+`algorithms/request_sign/sign.py`:
 
 ```python
 from typing import Dict
 from urllib.parse import urlencode
-from ..platforms.crypto import hmac_hex, sha256_hex
+from .crypto import hmac_hex, sha256_hex
 
 
 def get_request_signature(
@@ -170,11 +178,27 @@ def get_request_signature(
     return hmac_hex(key, message.encode("utf-8"), "sha256")
 ```
 
+`algorithms/request_sign/__init__.py`:
+
+```python
+from .sign import get_request_signature
+
+__all__ = ["get_request_signature"]
+```
+
+`algorithms/__init__.py`:
+
+```python
+from .request_sign import get_request_signature
+
+__all__ = ["get_request_signature"]
+```
+
 `api/list_items.py`:
 
 ```python
 import time
-from ..algorithms.signature import get_request_signature
+from ..algorithms import get_request_signature
 from ..platforms.request import Request
 
 
@@ -224,7 +248,7 @@ def parse_list_items(response: Union[str, dict]) -> Dict[str, object]:
 
 ```python
 from .api.list_items import build_list_items_request
-from .algorithms.signature import get_request_signature
+from .algorithms import get_request_signature
 from .parser.response import parse_list_items
 from .platforms.request import Request
 
@@ -265,12 +289,14 @@ Reject these outcomes even if their tests pass:
 - A spider embeds endpoint dictionaries, cryptographic calculations or protocol parsers.
 - Every endpoint delegates its entire request to a distant builder and merely renames its arguments.
 - A folder named `params` contains only moved static dictionaries while computed fields remain in transport.
-- A generic crypto helper embeds vendor constants or chooses business keys.
+- An independently promised algorithm imports parent-package settings, sibling algorithms, or a shared
+  project-local crypto foundation.
 - Parsers are hidden inside network/client methods, or a public parser performs an HTTP read.
 - A unified export creates another forwarding chain or imports application startup as a side effect.
 
 Before delivery, preview a complete request without network access; verify signed and transmitted values
 match; independently parse a valid, empty, denied and malformed response; exercise partial-stream failure
 and closure when applicable; and trace one real build/download/parse flow through the public exports. For
-shared cryptographic wrappers, use independent known vectors as well as protocol round trips. Update old
+algorithms, use independent known vectors as well as protocol round trips. Copy each standalone algorithm
+package into a temporary directory and verify its public import and calculation without the parent project. Update old
 imports and remove draft-only relays; retain only compatibility paths required by real callers.
